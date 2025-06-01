@@ -202,6 +202,8 @@ class TwitterReplyBot {
                 throw new Error('Could not find tweet content');
             }
 
+            console.log('Twitter Reply Bot: Generating reply for tweet:', tweetContent);
+
             // Send request to background script
             const request: GenerateReplyRequest = {
                 tweetContent,
@@ -226,6 +228,8 @@ class TwitterReplyBot {
                 throw error;
             }
 
+            console.log('Twitter Reply Bot: Received response:', response);
+
             if (!response) {
                 throw new Error('No response from extension. Please refresh the page and try again.');
             }
@@ -234,8 +238,12 @@ class TwitterReplyBot {
                 throw new Error(response.error);
             }
 
+            if (!response.reply || response.reply.trim() === '') {
+                throw new Error('Generated reply is empty. Please try again.');
+            }
+
             // Insert the generated reply
-            this.insertReply(response.reply, textArea);
+            await this.insertReply(response.reply, textArea);
 
             // Reset button
             button.innerHTML = originalText;
@@ -294,7 +302,15 @@ class TwitterReplyBot {
         return null;
     }
 
-    private insertReply(reply: string, textArea: HTMLElement) {
+    private async insertReply(reply: string, textArea: HTMLElement) {
+        // Validate reply
+        if (!reply || reply.trim() === '') {
+            console.error('Twitter Reply Bot: Cannot insert empty reply');
+            return;
+        }
+
+        console.log('Twitter Reply Bot: Inserting reply:', reply);
+
         // Focus the element first
         textArea.focus();
 
@@ -302,55 +318,78 @@ class TwitterReplyBot {
         const editableElement = textArea.hasAttribute('contenteditable') ? textArea :
             textArea.querySelector('[contenteditable="true"]') as HTMLElement || textArea;
 
-        if (!editableElement) return;
+        if (!editableElement) {
+            console.error('Twitter Reply Bot: Could not find editable element');
+            return;
+        }
 
-        // Clear existing content
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(editableElement);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
+        // Clear existing content by selecting all and deleting
+        editableElement.focus();
 
-        // Delete existing content
-        document.execCommand('delete', false);
+        // Get current content to check if we need to clear
+        const currentContent = editableElement.textContent || '';
+        console.log('Twitter Reply Bot: Current content before clear:', currentContent);
 
-        // Insert the new text using execCommand which preserves editability
-        document.execCommand('insertText', false, reply);
-
-        // Trigger input event for Twitter's state management
-        const inputEvent = new InputEvent('input', {
-            bubbles: true,
-            cancelable: true,
-            inputType: 'insertText',
-            data: reply
-        });
-        editableElement.dispatchEvent(inputEvent);
-
-        // Place cursor at the end and ensure the element stays focused
-        setTimeout(() => {
-            // Ensure focus
-            editableElement.focus();
-
-            // Move cursor to end
+        if (currentContent.trim() !== '') {
+            // Select all content
             const selection = window.getSelection();
             const range = document.createRange();
             range.selectNodeContents(editableElement);
-            range.collapse(false);
             selection?.removeAllRanges();
             selection?.addRange(range);
 
-            // Dispatch one more input event to ensure Twitter's state is updated
-            const finalInputEvent = new InputEvent('input', {
+            // Delete selected content
+            document.execCommand('delete', false);
+
+            // Clear the selection
+            selection?.removeAllRanges();
+        }
+
+        // Type each character
+        for (let i = 0; i < reply.length; i++) {
+            const char = reply[i];
+
+            // Focus before each character
+            editableElement.focus();
+
+            // Use execCommand for actual character insertion
+            document.execCommand('insertText', false, char);
+
+            // Trigger input event for each character
+            const inputEvent = new InputEvent('input', {
                 bubbles: true,
                 cancelable: true,
                 inputType: 'insertText',
-                data: ' '
+                data: char,
+                composed: true
             });
-            editableElement.dispatchEvent(finalInputEvent);
+            editableElement.dispatchEvent(inputEvent);
 
-            // Remove the extra space we just added
-            document.execCommand('delete', false);
-        }, 50);
+            // Small delay to simulate human typing (optional, but can help with some sites)
+            if (i % 10 === 0) {
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+        }
+
+        // Final input event for the complete text
+        const finalInputEvent = new InputEvent('input', {
+            bubbles: true,
+            cancelable: true,
+            inputType: 'insertRecomposeText',
+            composed: true
+        });
+        editableElement.dispatchEvent(finalInputEvent);
+
+        // Ensure focus and cursor at end
+        editableElement.focus();
+        const finalSelection = window.getSelection();
+        const finalRange = document.createRange();
+        finalRange.selectNodeContents(editableElement);
+        finalRange.collapse(false);
+        finalSelection?.removeAllRanges();
+        finalSelection?.addRange(finalRange);
+
+        console.log('Twitter Reply Bot: Reply insertion complete');
     }
 }
 

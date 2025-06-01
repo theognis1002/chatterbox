@@ -56,7 +56,7 @@ class BackgroundService {
     private async callOpenAI(apiKey: string, request: GenerateReplyRequest): Promise<string> {
         const { tweetContent, template } = request;
 
-        const systemPrompt = `You are a helpful Twitter reply assistant. Generate concise, colloquial and informal, engaging replies that fit Twitter's character limit. Do not use hashtags, or em dashes ${template.prompt}`;
+        const systemPrompt = `You are a helpful Twitter reply assistant. Generate concise, colloquial and informal, engaging replies that fit Twitter's character limit. Do not use hashtags, or em dashes. Write responses in all lowercase. ${template.prompt}`;
 
         const userPrompt = `Generate a reply to this tweet: "${tweetContent}"`;
 
