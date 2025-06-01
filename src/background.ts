@@ -9,7 +9,15 @@ class BackgroundService {
     private setupMessageListener() {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             if (request.action === 'generateReply') {
-                this.handleGenerateReply(request.data, sendResponse);
+                // Handle the request asynchronously
+                this.handleGenerateReply(request.data, sendResponse)
+                    .catch(error => {
+                        console.error('Error in handleGenerateReply:', error);
+                        sendResponse({
+                            reply: '',
+                            error: error instanceof Error ? error.message : 'Unknown error occurred'
+                        });
+                    });
                 return true; // Will respond asynchronously
             }
             return false;
@@ -48,36 +56,49 @@ class BackgroundService {
     private async callOpenAI(apiKey: string, request: GenerateReplyRequest): Promise<string> {
         const { tweetContent, template } = request;
 
-        const systemPrompt = `You are a helpful Twitter reply assistant. Generate concise, engaging replies that fit Twitter's character limit. ${template.prompt}`;
+        const systemPrompt = `You are a helpful Twitter reply assistant. Generate concise, colloquial and informal, engaging replies that fit Twitter's character limit. Do not use hashtags, or em dashes ${template.prompt}`;
 
         const userPrompt = `Generate a reply to this tweet: "${tweetContent}"`;
 
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
-                ],
-                max_tokens: 150,
-                temperature: 0.8,
-                presence_penalty: 0.6,
-                frequency_penalty: 0.3
-            })
-        });
+        try {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    max_tokens: 100,
+                    temperature: 0.3,
+                    presence_penalty: 0.6,
+                    frequency_penalty: 0.3
+                })
+            });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || 'OpenAI API request failed');
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ error: { message: 'Unknown API error' } }));
+                throw new Error(error.error?.message || 'OpenAI API request failed');
+            }
+
+            const data = await response.json();
+            const replyContent = data.choices?.[0]?.message?.content?.trim();
+
+            if (!replyContent) {
+                throw new Error('No reply content generated');
+            }
+
+            return replyContent;
+        } catch (error) {
+            if (error instanceof Error) {
+                throw error;
+            }
+            throw new Error('Failed to call OpenAI API');
         }
-
-        const data = await response.json();
-        return data.choices[0]?.message?.content?.trim() || 'Failed to generate reply';
     }
 }
 

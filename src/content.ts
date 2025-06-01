@@ -36,7 +36,7 @@ if (document.body) {
 
 class TwitterReplyBot {
     private templates: ReplyTemplate[] = DEFAULT_TEMPLATES;
-    private observer: MutationObserver | null = null;
+    private buttonsInjected = new WeakSet<HTMLElement>();
 
     constructor() {
         console.log('Twitter Reply Bot: Initializing...');
@@ -50,82 +50,111 @@ class TwitterReplyBot {
             this.templates = result.templates;
         }
 
-        // Start observing the DOM for reply boxes
-        this.startObserving();
+        // Listen for focus events on the page
+        this.setupFocusListener();
     }
 
-    private startObserving() {
-        console.log('Twitter Reply Bot: Starting DOM observation...');
-        this.observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'childList') {
-                    this.checkForReplyBox();
-                }
-            });
-        });
+    private setupFocusListener() {
+        console.log('Twitter Reply Bot: Setting up focus listener...');
 
-        this.observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
+        // Use event delegation to catch all focus events
+        document.addEventListener('focus', (event) => {
+            const target = event.target as HTMLElement;
 
-        // Initial check
-        this.checkForReplyBox();
+            // Check if this is a reply text area
+            if (this.isReplyTextArea(target)) {
+                console.log('Twitter Reply Bot: Reply text area focused!');
+                this.injectButtons(target);
+            }
+        }, true); // Use capture phase to catch events early
     }
 
-    private checkForReplyBox() {
-        // Find all tweet compose areas using multiple possible selectors
-        const replyBoxes = document.querySelectorAll([
-            '[data-testid="tweetTextarea_0"]:not([data-reply-bot-enhanced])',
-            '[data-testid="tweetTextarea_1"]:not([data-reply-bot-enhanced])',
-            '[contenteditable="true"][role="textbox"]:not([data-reply-bot-enhanced])',
-            '[aria-label*="Tweet text"]:not([data-reply-bot-enhanced])',
-            '[aria-label*="Post text"]:not([data-reply-bot-enhanced])',
-            '[aria-label*="Reply"]:not([data-reply-bot-enhanced])'
-        ].join(', '));
+    private isReplyTextArea(element: HTMLElement): boolean {
+        // Check various indicators that this is a reply text area
+        return (
+            element.getAttribute('contenteditable') === 'true' &&
+            (
+                element.getAttribute('data-testid')?.includes('tweetTextarea') ||
+                element.getAttribute('aria-label')?.includes('Post text') ||
+                element.getAttribute('aria-label')?.includes('Reply') ||
+                // Check if placeholder says "Post your reply"
+                element.getAttribute('aria-describedby')?.includes('placeholder') ||
+                // Check parent structure
+                element.closest('[data-testid*="tweetTextarea"]') !== null
+            )
+        );
+    }
 
-        if (replyBoxes.length > 0) {
-            console.log(`Twitter Reply Bot: Found ${replyBoxes.length} potential reply boxes`);
+    private injectButtons(textArea: HTMLElement) {
+        // Check if we already injected buttons for this text area
+        if (this.buttonsInjected.has(textArea)) {
+            console.log('Twitter Reply Bot: Buttons already injected for this text area');
+            return;
         }
 
-        replyBoxes.forEach((replyBox) => {
-            // Check if this is actually a reply box (has toolbar nearby)
-            const toolbar = replyBox.closest('div')?.parentElement?.querySelector('[data-testid="toolBar"]');
-            if (toolbar) {
-                console.log('Twitter Reply Bot: Found toolbar, enhancing reply box...');
-                this.enhanceReplyBox(replyBox as HTMLElement);
-            }
-        });
-    }
-
-    private enhanceReplyBox(replyBox: HTMLElement) {
-        console.log('Twitter Reply Bot: Enhancing reply box...');
-
-        // Mark as enhanced to avoid duplicate buttons
-        replyBox.setAttribute('data-reply-bot-enhanced', 'true');
-
-        // Find the toolbar to inject our buttons after
-        let toolbar = replyBox.closest('div')?.parentElement?.querySelector('[data-testid="toolBar"]');
-
-        // If no toolbar found, try alternative approaches
-        if (!toolbar) {
-            // Look for the parent container that contains the reply box
-            const container = replyBox.closest('[class*="DraftEditor"]') ||
-                replyBox.closest('[class*="public-DraftEditor"]') ||
-                replyBox.closest('div[dir="auto"]')?.parentElement?.parentElement;
-
-            if (container) {
-                toolbar = container.querySelector('[data-testid="toolBar"]') ||
-                    container.parentElement?.querySelector('[data-testid="toolBar"]');
-            }
-        }
-
+        // Find the toolbar
+        const toolbar = this.findToolbar(textArea);
         if (!toolbar) {
             console.log('Twitter Reply Bot: Could not find toolbar');
             return;
         }
 
-        // Create button container
+        // Check if buttons already exist in this area
+        if (toolbar.parentElement?.querySelector('.reply-bot-container')) {
+            console.log('Twitter Reply Bot: Buttons already exist in this area');
+            return;
+        }
+
+        // Create and inject the buttons
+        const buttonContainer = this.createButtonContainer(textArea);
+
+        // Insert after the toolbar
+        toolbar.parentElement?.insertBefore(buttonContainer, toolbar.nextSibling);
+
+        // Mark this text area as having buttons
+        this.buttonsInjected.add(textArea);
+
+        console.log('Twitter Reply Bot: Buttons injected successfully!');
+    }
+
+    private findToolbar(textArea: HTMLElement): HTMLElement | null {
+        // Try multiple strategies to find the toolbar
+
+        // Strategy 1: Look for toolbar sibling
+        let parent = textArea.closest('[data-testid*="tweetTextarea"]')?.parentElement;
+        while (parent && parent !== document.body) {
+            const toolbar = parent.querySelector('[data-testid="toolBar"]');
+            if (toolbar) {
+                console.log('Twitter Reply Bot: Found toolbar via parent search');
+                return toolbar as HTMLElement;
+            }
+            parent = parent.parentElement;
+        }
+
+        // Strategy 2: Look for the specific structure from the provided DOM
+        const editorRoot = textArea.closest('.DraftEditor-root');
+        if (editorRoot) {
+            const mainContainer = editorRoot.closest('.css-175oi2r.r-kemksi.r-jumn1c.r-xd6kpl.r-gtdqiz.r-ipm5af.r-184en5c');
+            if (mainContainer) {
+                const toolbar = mainContainer.querySelector('[data-testid="toolBar"]');
+                if (toolbar) {
+                    console.log('Twitter Reply Bot: Found toolbar via DraftEditor structure');
+                    return toolbar as HTMLElement;
+                }
+            }
+        }
+
+        // Strategy 3: Global search (less ideal but works)
+        const allToolbars = document.querySelectorAll('[data-testid="toolBar"]');
+        if (allToolbars.length === 1) {
+            console.log('Twitter Reply Bot: Found single toolbar on page');
+            return allToolbars[0] as HTMLElement;
+        }
+
+        return null;
+    }
+
+    private createButtonContainer(textArea: HTMLElement): HTMLElement {
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'reply-bot-container';
         buttonContainer.innerHTML = `
@@ -136,18 +165,14 @@ class TwitterReplyBot {
         // Add buttons for each template
         const buttonsDiv = buttonContainer.querySelector('.reply-bot-buttons') as HTMLElement;
         this.templates.forEach((template) => {
-            const button = this.createTemplateButton(template, replyBox);
+            const button = this.createTemplateButton(template, textArea);
             buttonsDiv.appendChild(button);
         });
 
-        // Insert after the toolbar
-        if (toolbar.parentElement) {
-            toolbar.parentElement.insertBefore(buttonContainer, toolbar.nextSibling);
-            console.log('Twitter Reply Bot: Buttons added successfully!');
-        }
+        return buttonContainer;
     }
 
-    private createTemplateButton(template: ReplyTemplate, replyBox: HTMLElement): HTMLButtonElement {
+    private createTemplateButton(template: ReplyTemplate, textArea: HTMLElement): HTMLButtonElement {
         const button = document.createElement('button');
         button.className = 'reply-bot-button';
         button.innerHTML = `${template.icon || ''} ${template.name}`;
@@ -156,13 +181,13 @@ class TwitterReplyBot {
         button.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            await this.generateReply(template, replyBox);
+            await this.generateReply(template, textArea);
         });
 
         return button;
     }
 
-    private async generateReply(template: ReplyTemplate, replyBox: HTMLElement) {
+    private async generateReply(template: ReplyTemplate, textArea: HTMLElement) {
         try {
             // Show loading state
             const button = event?.target as HTMLButtonElement;
@@ -183,17 +208,34 @@ class TwitterReplyBot {
                 template
             };
 
-            const response: GenerateReplyResponse = await chrome.runtime.sendMessage({
-                action: 'generateReply',
-                data: request
-            });
+            let response: GenerateReplyResponse;
+
+            try {
+                response = await chrome.runtime.sendMessage({
+                    action: 'generateReply',
+                    data: request
+                });
+            } catch (error) {
+                // Check if it's an extension context invalidated error
+                if (error instanceof Error && error.message.includes('Extension context invalidated')) {
+                    // Show user-friendly message
+                    alert('The extension was updated. Please refresh the page to continue using Twitter Reply Bot.');
+                    throw error;
+                }
+                // Re-throw other errors
+                throw error;
+            }
+
+            if (!response) {
+                throw new Error('No response from extension. Please refresh the page and try again.');
+            }
 
             if (response.error) {
                 throw new Error(response.error);
             }
 
             // Insert the generated reply
-            this.insertReply(response.reply, replyBox);
+            this.insertReply(response.reply, textArea);
 
             // Reset button
             button.innerHTML = originalText;
@@ -201,12 +243,25 @@ class TwitterReplyBot {
 
         } catch (error) {
             console.error('Error generating reply:', error);
-            alert(`Error: ${error instanceof Error ? error.message : 'Failed to generate reply'}`);
+
+            // Provide user-friendly error messages
+            let errorMessage = 'Failed to generate reply';
+            if (error instanceof Error) {
+                if (error.message.includes('Extension context invalidated')) {
+                    errorMessage = 'Please refresh the page to continue using the extension';
+                } else {
+                    errorMessage = error.message;
+                }
+            }
+
+            alert(`Error: ${errorMessage}`);
 
             // Reset button
             const button = event?.target as HTMLButtonElement;
-            button.innerHTML = button.title.replace('Generate ', '');
-            button.disabled = false;
+            if (button) {
+                button.innerHTML = button.title.replace('Generate ', '');
+                button.disabled = false;
+            }
         }
     }
 
@@ -239,40 +294,63 @@ class TwitterReplyBot {
         return null;
     }
 
-    private insertReply(reply: string, replyBox: HTMLElement) {
-        // The replyBox might be the contenteditable itself or contain it
-        let editableDiv = replyBox;
-
-        if (!replyBox.hasAttribute('contenteditable')) {
-            editableDiv = replyBox.querySelector('[contenteditable="true"]') as HTMLElement || replyBox;
-        }
-
-        if (!editableDiv) return;
-
+    private insertReply(reply: string, textArea: HTMLElement) {
         // Focus the element first
-        editableDiv.focus();
+        textArea.focus();
+
+        // Find the actual contenteditable element
+        const editableElement = textArea.hasAttribute('contenteditable') ? textArea :
+            textArea.querySelector('[contenteditable="true"]') as HTMLElement || textArea;
+
+        if (!editableElement) return;
 
         // Clear existing content
-        editableDiv.innerHTML = '';
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(editableElement);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
 
-        // Insert the reply text
-        editableDiv.textContent = reply;
+        // Delete existing content
+        document.execCommand('delete', false);
 
-        // Trigger input event to update Twitter's state
-        const inputEvent = new Event('input', { bubbles: true });
-        editableDiv.dispatchEvent(inputEvent);
+        // Insert the new text using execCommand which preserves editability
+        document.execCommand('insertText', false, reply);
 
-        // Also trigger a change event
-        const changeEvent = new Event('change', { bubbles: true });
-        editableDiv.dispatchEvent(changeEvent);
-
-        // Trigger keyboard event to ensure Twitter recognizes the input
-        const keyboardEvent = new KeyboardEvent('keydown', {
-            key: ' ',
-            code: 'Space',
-            bubbles: true
+        // Trigger input event for Twitter's state management
+        const inputEvent = new InputEvent('input', {
+            bubbles: true,
+            cancelable: true,
+            inputType: 'insertText',
+            data: reply
         });
-        editableDiv.dispatchEvent(keyboardEvent);
+        editableElement.dispatchEvent(inputEvent);
+
+        // Place cursor at the end and ensure the element stays focused
+        setTimeout(() => {
+            // Ensure focus
+            editableElement.focus();
+
+            // Move cursor to end
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(editableElement);
+            range.collapse(false);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+
+            // Dispatch one more input event to ensure Twitter's state is updated
+            const finalInputEvent = new InputEvent('input', {
+                bubbles: true,
+                cancelable: true,
+                inputType: 'insertText',
+                data: ' '
+            });
+            editableElement.dispatchEvent(finalInputEvent);
+
+            // Remove the extra space we just added
+            document.execCommand('delete', false);
+        }, 50);
     }
 }
 
