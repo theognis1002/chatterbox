@@ -1,0 +1,24 @@
+{
+    "name": "twitter-reply-bot",
+    "version": "1.0.0",
+    "description": "Chrome extension for generating AI-powered Twitter replies",
+    "scripts": {
+        "build": "webpack --mode production",
+        "dev": "webpack --mode development --watch",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "openai": "^4.20.0"
+    },
+    "devDependencies": {
+        "@types/chrome": "^0.0.251",
+        "@types/node": "^20.9.0",
+        "copy-webpack-plugin": "^11.0.0",
+        "css-loader": "^6.8.1",
+        "mini-css-extract-plugin": "^2.7.6",
+        "ts-loader": "^9.5.0",
+        "typescript": "^5.2.2",
+        "webpack": "^5.89.0",
+        "webpack-cli": "^5.1.4"
+    }
+}

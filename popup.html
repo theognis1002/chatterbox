@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Twitter Reply Bot Settings</title>
+  <link rel="stylesheet" href="dist/styles.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <h1>
+        <span class="logo">🤖</span>
+        Twitter Reply Bot
+      </h1>
+    </div>
+
+    <div class="api-key-section">
+      <label for="apiKey">OpenAI API Key:</label>
+      <input 
+        type="password" 
+        id="apiKey" 
+        class="api-key-input" 
+        placeholder="sk-..."
+      />
+      <button id="saveButton" class="save-button">Save API Key</button>
+      <div id="statusMessage" class="status-message" style="display: none;"></div>
+    </div>
+
+    <div class="info-section">
+      <h2>How to use:</h2>
+      <p>1. Enter your OpenAI API key above</p>
+      <p>2. Go to Twitter and click reply on any tweet</p>
+      <p>3. Select a template button to generate a reply</p>
+      <p>4. Edit the generated reply as needed</p>
+      
+      <h2>Get an API key:</h2>
+      <p>
+        Visit <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a> 
+        to create your API key.
+      </p>
+    </div>
+  </div>
+
+  <script src="dist/popup.js"></script>
+</body>
+</html> 
