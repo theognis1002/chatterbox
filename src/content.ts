@@ -7,7 +7,7 @@ console.log('Twitter Reply Bot: Content script loaded!');
 // Add a test button to the page immediately
 function addTestButton() {
     const testButton = document.createElement('button');
-    testButton.innerHTML = '🤖 Reply Bot Active';
+    testButton.innerHTML = '🤖';
     testButton.style.cssText = `
         position: fixed;
         bottom: 20px;
@@ -37,6 +37,7 @@ if (document.body) {
 class TwitterReplyBot {
     private templates: ReplyTemplate[] = DEFAULT_TEMPLATES;
     private buttonsInjected = new WeakSet<HTMLElement>();
+    private observer: MutationObserver | null = null;
 
     constructor() {
         console.log('Twitter Reply Bot: Initializing...');
@@ -52,6 +53,9 @@ class TwitterReplyBot {
 
         // Listen for focus events on the page
         this.setupFocusListener();
+
+        // Also observe DOM changes to catch reply boxes as they appear
+        this.startObserving();
     }
 
     private setupFocusListener() {
@@ -67,6 +71,104 @@ class TwitterReplyBot {
                 this.injectButtons(target);
             }
         }, true); // Use capture phase to catch events early
+    }
+
+    private startObserving() {
+        console.log('Twitter Reply Bot: Starting DOM observation...');
+
+        this.observer = new MutationObserver((mutations) => {
+            // Look for reply buttons in the mutations
+            for (const mutation of mutations) {
+                if (mutation.type === 'childList') {
+                    // Check added nodes
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            this.checkForReplyButton(node as HTMLElement);
+                        }
+                    });
+                }
+            }
+        });
+
+        // Start observing
+        this.observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        // Initial check for any existing reply buttons
+        this.checkForReplyButton(document.body);
+    }
+
+    private checkForReplyButton(node: HTMLElement) {
+        // Look for the Reply button
+        const replyButtons = node.querySelectorAll('[data-testid="tweetButtonInline"]');
+
+        replyButtons.forEach((button) => {
+            console.log('Twitter Reply Bot: Found Reply button');
+            this.injectButtonsNearReplyButton(button as HTMLElement);
+        });
+
+        // Also check if the node itself is a reply button
+        if (node.getAttribute('data-testid') === 'tweetButtonInline') {
+            console.log('Twitter Reply Bot: Node itself is Reply button');
+            this.injectButtonsNearReplyButton(node);
+        }
+    }
+
+    private injectButtonsNearReplyButton(replyButton: HTMLElement) {
+        // Check if we already injected buttons in this area
+        const toolbar = replyButton.closest('[data-testid="toolBar"]') as HTMLElement;
+        if (!toolbar) {
+            console.log('Twitter Reply Bot: Could not find toolbar for Reply button');
+            return;
+        }
+
+        // Check if buttons already exist
+        if (toolbar.parentElement?.querySelector('.reply-bot-container')) {
+            console.log('Twitter Reply Bot: Buttons already exist in this area');
+            return;
+        }
+
+        // Find the text area associated with this reply button
+        const textArea = this.findAssociatedTextArea(toolbar);
+        if (!textArea) {
+            console.log('Twitter Reply Bot: Could not find associated text area');
+            return;
+        }
+
+        // Create and inject the buttons
+        const buttonContainer = this.createButtonContainer(textArea);
+
+        // Insert after the toolbar
+        toolbar.parentElement?.insertBefore(buttonContainer, toolbar.nextSibling);
+
+        console.log('Twitter Reply Bot: Buttons injected successfully!');
+    }
+
+    private findAssociatedTextArea(toolbar: HTMLElement): HTMLElement | null {
+        // Look for text area in the same container structure
+        let parent = toolbar.parentElement;
+        while (parent && parent !== document.body) {
+            const textArea = parent.querySelector('[contenteditable="true"][role="textbox"]') as HTMLElement;
+            if (textArea) {
+                return textArea;
+            }
+            parent = parent.parentElement;
+        }
+
+        // Fallback: look for any contenteditable in the page
+        const allTextAreas = document.querySelectorAll('[contenteditable="true"][role="textbox"]');
+        if (allTextAreas.length === 1) {
+            return allTextAreas[0] as HTMLElement;
+        }
+
+        return null;
+    }
+
+    private checkNodeForReplyBoxes(node: HTMLElement) {
+        // Now just check for Reply buttons instead of text areas
+        this.checkForReplyButton(node);
     }
 
     private isReplyTextArea(element: HTMLElement): boolean {
@@ -158,7 +260,6 @@ class TwitterReplyBot {
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'reply-bot-container';
         buttonContainer.innerHTML = `
-            <div class="reply-bot-header">AI Reply Templates:</div>
             <div class="reply-bot-buttons"></div>
         `;
 
@@ -245,6 +346,9 @@ class TwitterReplyBot {
             // Insert the generated reply
             await this.insertReply(response.reply, textArea);
 
+            // Auto-like the post
+            await this.autoLikePost();
+
             // Reset button
             button.innerHTML = originalText;
             button.disabled = false;
@@ -271,6 +375,32 @@ class TwitterReplyBot {
                 button.disabled = false;
             }
         }
+    }
+
+    private async autoLikePost() {
+        console.log('Twitter Reply Bot: Attempting to auto-like post...');
+
+        // Find the tweet article we're replying to
+        const article = document.querySelector('article[data-testid="tweet"]');
+        if (!article) {
+            console.log('Twitter Reply Bot: Could not find tweet article');
+            return;
+        }
+
+        // Look for the like button using data-testid="like"
+        const likeButton = article.querySelector('[data-testid="like"]');
+
+        if (!likeButton) {
+            console.log('Twitter Reply Bot: Could not find like button');
+            return;
+        }
+
+        // Click the like button
+        (likeButton as HTMLElement).click();
+        console.log('Twitter Reply Bot: Liked the post!');
+
+        // Small delay to ensure the like is registered
+        await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     private getTweetContent(): string | null {

@@ -1,11 +1,14 @@
 /* Styles for Twitter Reply Bot */
+* {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 400;
+}
 
 .reply-bot-container {
   margin: 12px 0;
   padding: 12px;
-  background-color: #f7f9fa;
-  border-radius: 8px;
-  border: 1px solid #e1e8ed;
+  background-color: transparent;
+  border: none;
 }
 
 /* Dark mode support */
@@ -17,7 +20,7 @@
 }
 
 .reply-bot-header {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: #536471;
   margin-bottom: 8px;

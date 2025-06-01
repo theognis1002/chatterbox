@@ -56,9 +56,13 @@ class BackgroundService {
     private async callOpenAI(apiKey: string, request: GenerateReplyRequest): Promise<string> {
         const { tweetContent, template } = request;
 
-        const systemPrompt = `You are a helpful Twitter reply assistant. Generate concise, colloquial and informal, engaging replies that fit Twitter's character limit. Do not use hashtags, or em dashes. Write responses in all lowercase. ${template.prompt}`;
+        const systemPrompt = `You are an active Twitter user in the tech industry who is building a following. Generate concise, colloquial/informal, intelligent, engaging replies that fit Twitter's character limit. Do NOT use hashtags, apostrophes, emojis, or em dashes. Write responses in all lowercase. ${template.prompt}`;
 
-        const userPrompt = `Generate a reply to this tweet: "${tweetContent}"`;
+        if (tweetContent) {
+            var userPrompt = `Generate a reply to this tweet: "${tweetContent}"`;
+        } else {
+            var userPrompt = `Create a post"`;
+        }
 
         try {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -68,13 +72,13 @@ class BackgroundService {
                     'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-3.5-turbo',
+                    model: 'gpt-4o',
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userPrompt }
                     ],
-                    max_tokens: 100,
-                    temperature: 0.3,
+                    max_tokens: 50,
+                    temperature: 0.1,
                     presence_penalty: 0.6,
                     frequency_penalty: 0.3
                 })
@@ -86,19 +90,38 @@ class BackgroundService {
             }
 
             const data = await response.json();
-            const replyContent = data.choices?.[0]?.message?.content?.trim();
+            let replyContent = data.choices?.[0]?.message?.content?.trim();
 
             if (!replyContent) {
                 throw new Error('No reply content generated');
             }
 
-            return replyContent;
+            return this.formatReplyContent(replyContent);
         } catch (error) {
             if (error instanceof Error) {
                 throw error;
             }
             throw new Error('Failed to call OpenAI API');
         }
+    }
+
+    private formatReplyContent(content: string): string {
+        let formattedContent = content;
+
+        // Remove trailing period if it exists
+        if (formattedContent.endsWith('.')) {
+            formattedContent = formattedContent.slice(0, -1);
+        }
+
+        // Add more formatting rules here as needed
+        // Example future rules:
+        // - Convert to lowercase
+        // - Remove multiple spaces
+        // - Trim hashtags
+        // - Remove emojis
+        // - Character count validation
+
+        return formattedContent;
     }
 }
 
