@@ -77,5 +77,11 @@ export const DEFAULT_TEMPLATES: ReplyTemplate[] = [
         name: 'Respond',
         prompt: 'Generate a 1 sentence concise, response to the tweet. Be positive and/or constructive.',
         icon: '💬'
+    },
+    {
+        id: 'encourage',
+        name: 'Encourage',
+        prompt: 'Generate a 1 sentence concise, encouraging response to the tweet. Be positive and/or constructive.',
+        icon: '💪'
     }
 ]; 
