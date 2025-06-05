@@ -1,15 +1,17 @@
-# Twitter Reply Bot Chrome Extension
+# X/X Reply Bot Chrome Extension
 
-A Chrome extension that uses AI to generate contextual replies for Twitter/X comments. Select from different templates like questions, funny remarks, agreements, or insights to quickly craft engaging responses.
+A Chrome extension that uses AI to generate contextual replies for X/X comments. Select from different templates like questions, funny remarks, agreements, or insights to quickly craft engaging responses.
 
 ## Features
 
-- 🤖 AI-powered reply generation using OpenAI's GPT-3.5
+- 🤖 AI-powered reply generation using OpenAI models (GPT-4, GPT-3.5-turbo, and more)
 - 📝 Multiple reply templates (Question, Funny Remark, Agreement, Add Insight)
-- 🎨 Clean UI that integrates seamlessly with Twitter's interface
+- 🎨 Clean UI that integrates seamlessly with X's interface
 - 🌓 Dark mode support
 - ⚡ Fast response generation
 - 🔒 Secure API key storage
+- ⚙️ Customizable system prompt
+- 🎛️ Advanced AI parameter controls
 
 ## Setup
 
@@ -48,11 +50,18 @@ npm run build
 
 1. Click the extension icon in your Chrome toolbar
 2. Enter your OpenAI API key
-3. Click "Save API Key"
+3. (Optional) Select your preferred OpenAI model
+4. (Optional) Customize the system prompt
+5. (Optional) Adjust advanced settings:
+   - Temperature (controls response randomness)
+   - Max tokens (controls response length)
+   - Presence penalty (encourages new topics)
+   - Frequency penalty (reduces repetition)
+6. Click "Save Settings"
 
 ## Usage
 
-1. Go to Twitter/X
+1. Go to X/X
 2. Click "Reply" on any tweet
 3. You'll see AI template buttons below the reply box
 4. Click a template to generate a contextual reply
@@ -66,17 +75,19 @@ npm run build
 reply-bot/
 ├── src/
 │   ├── background.ts    # Service worker for API calls
-│   ├── content.ts       # Content script for Twitter integration
+│   ├── content.ts       # Content script for X integration
 │   ├── popup.ts         # Extension popup logic
 │   ├── types.ts         # TypeScript type definitions
-│   └── styles.css       # Extension styles
-├── icons/               # Extension icons
-├── dist/               # Built files (generated)
-├── manifest.json       # Chrome extension manifest
-├── popup.html          # Extension popup HTML
-├── package.json        # Node dependencies
-├── tsconfig.json       # TypeScript config
-└── webpack.config.js   # Webpack bundler config
+│   ├── utils/          # Utility functions
+│   ├── prompts/        # System prompts
+│   └── styles.css      # Extension styles
+├── icons/              # Extension icons
+├── dist/              # Built files (generated)
+├── manifest.json      # Chrome extension manifest
+├── popup.html         # Extension popup HTML
+├── package.json       # Node dependencies
+├── tsconfig.json      # TypeScript config
+└── webpack.config.js  # Webpack bundler config
 ```
 
 ### Development Mode
@@ -105,8 +116,9 @@ The extension includes 4 default templates:
 ## Privacy & Security
 
 - API keys are stored locally in Chrome's secure storage
+- Settings and preferences are stored locally
 - No data is sent to third parties except OpenAI for reply generation
-- The extension only activates on Twitter/X domains
+- The extension only activates on X/X domains
 
 ## Troubleshooting
 
@@ -114,23 +126,26 @@ The extension includes 4 default templates:
 
 1. Make sure you've entered a valid OpenAI API key
 2. Check that you have credits in your OpenAI account
-3. Refresh the Twitter page after installing the extension
-4. Check the console for any error messages
+3. Verify your selected model is available on your OpenAI plan
+4. Refresh the X page after installing the extension
+5. Check the console for any error messages
 
 ### API Key Issues
 
 - Ensure your API key starts with `sk-`
 - Verify your OpenAI account has available credits
 - Check that the API key has the necessary permissions
+- Confirm your OpenAI plan supports the selected model
 
 ## Future Enhancements
 
-- [ ] Support for GPT-4
 - [ ] Custom template creation
 - [ ] Reply history
 - [ ] Sentiment analysis
 - [ ] Multi-language support
 - [ ] Thread continuation support
+- [ ] Template-specific system prompts
+- [ ] Custom model parameter presets
 
 ## Contributing
 

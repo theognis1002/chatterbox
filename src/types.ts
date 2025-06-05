@@ -1,4 +1,4 @@
-// Type definitions for Twitter Reply Bot
+// Type definitions for X Reply Bot
 
 export interface ReplyTemplate {
     id: string;

@@ -1,7 +1,7 @@
 {
     "name": "twitter-reply-bot",
     "version": "1.0.0",
-    "description": "Chrome extension for generating AI-powered Twitter replies",
+    "description": "Chrome extension for generating AI-powered X replies",
     "scripts": {
         "build": "webpack --mode production",
         "dev": "webpack --mode development --watch",

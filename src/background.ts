@@ -1,4 +1,4 @@
-// Background service worker for Twitter Reply Bot
+// Background service worker for X Reply Bot
 import { GenerateReplyRequest, GenerateReplyResponse } from './types';
 import { loadDefaultSystemPrompt } from './utils/promptLoader';
 
@@ -10,7 +10,7 @@ interface AdvancedSettings {
 }
 
 const DEFAULT_SETTINGS: AdvancedSettings = {
-    temperature: 0.7,
+    temperature: 0.5,
     maxTokens: 50,
     presencePenalty: 0.6,
     frequencyPenalty: 0.3

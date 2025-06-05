@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Twitter Reply Bot",
+    "name": "X Reply Bot",
     "version": "1.0.0",
-    "description": "AI-powered contextual reply generator for Twitter",
+    "description": "AI-powered contextual reply generator for X",
     "permissions": [
         "storage",
         "activeTab"

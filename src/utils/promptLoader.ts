@@ -12,6 +12,6 @@ export async function loadDefaultSystemPrompt(): Promise<string> {
     } catch (error) {
         console.error('Error loading system prompt:', error);
         // Fallback to a basic prompt if file loading fails
-        return 'You are a tech-focused Twitter user. Generate concise, engaging replies.';
+        return 'You are a tech-focused X user. Generate concise, engaging replies.';
     }
 } 
