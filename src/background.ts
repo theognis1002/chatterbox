@@ -7,13 +7,15 @@ interface AdvancedSettings {
     maxTokens: number;
     presencePenalty: number;
     frequencyPenalty: number;
+    typingSpeed: number;
 }
 
 const DEFAULT_SETTINGS: AdvancedSettings = {
     temperature: 0.5,
     maxTokens: 50,
     presencePenalty: 0.6,
-    frequencyPenalty: 0.3
+    frequencyPenalty: 0.3,
+    typingSpeed: 5
 };
 
 class BackgroundService {

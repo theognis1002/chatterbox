@@ -23,6 +23,14 @@ export interface StorageData {
     templates?: ReplyTemplate[];
 }
 
+export interface AdvancedSettings {
+    temperature: number;
+    maxTokens: number;
+    presencePenalty: number;
+    frequencyPenalty: number;
+    typingSpeed: number;
+}
+
 export const DEFAULT_TEMPLATES: ReplyTemplate[] = [
     {
         id: 'question',

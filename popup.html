@@ -130,6 +130,23 @@
               <small class="setting-description">Higher values decrease the model's likelihood to repeat itself.</small>
             </div>
 
+            <div class="setting-item">
+              <label for="typingSpeed">Typing Speed (ms):</label>
+              <div class="setting-control">
+                <input 
+                  type="range" 
+                  id="typingSpeed" 
+                  min="0" 
+                  max="100" 
+                  step="5" 
+                  value="5"
+                  class="slider"
+                />
+                <span class="setting-value" id="typingSpeedValue">5</span>
+              </div>
+              <small class="setting-description">Delay between characters. Higher values make typing appear more human-like.</small>
+            </div>
+
             <button id="resetAdvancedButton" class="reset-button">Reset to Defaults</button>
           </div>
         </div>

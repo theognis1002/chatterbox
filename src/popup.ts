@@ -7,13 +7,15 @@ interface AdvancedSettings {
     maxTokens: number;
     presencePenalty: number;
     frequencyPenalty: number;
+    typingSpeed: number;
 }
 
 const DEFAULT_SETTINGS: AdvancedSettings = {
     temperature: 0.7,
     maxTokens: 50,
     presencePenalty: 0.6,
-    frequencyPenalty: 0.3
+    frequencyPenalty: 0.3,
+    typingSpeed: 5
 };
 
 class PopupManager {
@@ -42,6 +44,7 @@ class PopupManager {
     private addTemplateButton!: HTMLButtonElement;
     private resetTemplatesButton!: HTMLButtonElement;
     private templates: ReplyTemplate[] = [];
+    private typingSpeedInput!: HTMLInputElement;
 
     constructor() {
         this.initializeElements();
@@ -72,6 +75,7 @@ class PopupManager {
         this.templatesList = document.getElementById('templatesList') as HTMLElement;
         this.addTemplateButton = document.getElementById('addTemplateButton') as HTMLButtonElement;
         this.resetTemplatesButton = document.getElementById('resetTemplatesButton') as HTMLButtonElement;
+        this.typingSpeedInput = document.getElementById('typingSpeed') as HTMLInputElement;
     }
 
     private async init() {
@@ -124,6 +128,39 @@ class PopupManager {
         // Template management
         this.addTemplateButton.addEventListener('click', () => this.addTemplate());
         this.resetTemplatesButton.addEventListener('click', () => this.resetTemplates());
+
+        // Advanced settings value display updates
+        const temperatureValue = document.getElementById('temperatureValue');
+        const presencePenaltyValue = document.getElementById('presencePenaltyValue');
+        const frequencyPenaltyValue = document.getElementById('frequencyPenaltyValue');
+        const typingSpeedValue = document.getElementById('typingSpeedValue');
+
+        this.temperatureInput.addEventListener('input', () => {
+            temperatureValue!.textContent = this.temperatureInput.value;
+        });
+
+        this.presencePenaltyInput.addEventListener('input', () => {
+            presencePenaltyValue!.textContent = this.presencePenaltyInput.value;
+        });
+
+        this.frequencyPenaltyInput.addEventListener('input', () => {
+            frequencyPenaltyValue!.textContent = this.frequencyPenaltyInput.value;
+        });
+
+        this.typingSpeedInput.addEventListener('input', () => {
+            typingSpeedValue!.textContent = this.typingSpeedInput.value;
+        });
+
+        // Save settings when values change
+        this.temperatureInput.addEventListener('change', () => this.saveAdvancedSettings());
+        this.maxTokensInput.addEventListener('change', () => this.saveAdvancedSettings());
+        this.presencePenaltyInput.addEventListener('change', () => this.saveAdvancedSettings());
+        this.frequencyPenaltyInput.addEventListener('change', () => this.saveAdvancedSettings());
+        this.typingSpeedInput.addEventListener('change', () => this.saveAdvancedSettings());
+
+        // Reset advanced settings
+        const resetAdvancedButton = document.getElementById('resetAdvancedButton');
+        resetAdvancedButton?.addEventListener('click', () => this.resetAdvancedSettings());
     }
 
     private async loadSettings() {
@@ -149,6 +186,7 @@ class PopupManager {
             this.maxTokensInput.value = settings.maxTokens.toString();
             this.presencePenaltyInput.value = settings.presencePenalty.toString();
             this.frequencyPenaltyInput.value = settings.frequencyPenalty.toString();
+            this.typingSpeedInput.value = settings.typingSpeed.toString();
 
             // Update range values
             this.updateAllRangeValues();
@@ -180,7 +218,8 @@ class PopupManager {
                 temperature: parseFloat(this.temperatureInput.value),
                 maxTokens: parseInt(this.maxTokensInput.value),
                 presencePenalty: parseFloat(this.presencePenaltyInput.value),
-                frequencyPenalty: parseFloat(this.frequencyPenaltyInput.value)
+                frequencyPenalty: parseFloat(this.frequencyPenaltyInput.value),
+                typingSpeed: parseFloat(this.typingSpeedInput.value)
             };
 
             await chrome.storage.sync.set({
@@ -233,6 +272,7 @@ class PopupManager {
         this.maxTokensInput.value = DEFAULT_SETTINGS.maxTokens.toString();
         this.presencePenaltyInput.value = DEFAULT_SETTINGS.presencePenalty.toString();
         this.frequencyPenaltyInput.value = DEFAULT_SETTINGS.frequencyPenalty.toString();
+        this.typingSpeedInput.value = DEFAULT_SETTINGS.typingSpeed.toString();
         this.updateAllRangeValues();
         this.saveSettings();
     }
@@ -384,9 +424,22 @@ class PopupManager {
             this.showStatus('Error saving templates', 'error');
         }
     }
+
+    private async saveAdvancedSettings() {
+        const advancedSettings = {
+            temperature: parseFloat(this.temperatureInput.value),
+            maxTokens: parseInt(this.maxTokensInput.value),
+            presencePenalty: parseFloat(this.presencePenaltyInput.value),
+            frequencyPenalty: parseFloat(this.frequencyPenaltyInput.value),
+            typingSpeed: parseInt(this.typingSpeedInput.value)
+        };
+
+        await chrome.storage.sync.set({ advancedSettings });
+        this.showStatus('Settings saved!', 'success');
+    }
 }
 
 // Initialize popup when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     new PopupManager();
 }); 

@@ -436,6 +436,10 @@ class XReplyBot {
             return;
         }
 
+        // Get typing speed from storage
+        const { advancedSettings } = await chrome.storage.sync.get(['advancedSettings']);
+        const typingSpeed = advancedSettings?.typingSpeed ?? 5; // Default to 5ms if not set
+
         // Helper to check if an element is the editable tweet textbox
         const isEditableTextbox = (el: Element | null): el is HTMLElement => {
             return !!el && el instanceof HTMLElement && el.isContentEditable && el.getAttribute('role') === 'textbox';
@@ -504,9 +508,10 @@ class XReplyBot {
                 composed: true
             }));
 
-            // A small delay allows the site's JS to process the input,
-            // which can prevent race conditions and make typing more reliable.
-            await new Promise(resolve => setTimeout(resolve, 5));
+            // Use the configured typing speed
+            if (typingSpeed > 0) {
+                await new Promise(resolve => setTimeout(resolve, typingSpeed));
+            }
         }
 
         // After typing, re-find the element one last time for final operations.
