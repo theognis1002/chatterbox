@@ -1,17 +1,27 @@
-# X/X Reply Bot Chrome Extension
+# X/Twitter Reply Bot Chrome Extension
 
-A Chrome extension that uses AI to generate contextual replies for X/X comments. Select from different templates like questions, funny remarks, agreements, or insights to quickly craft engaging responses.
+A Chrome extension that uses AI to generate contextual replies for X/Twitter comments. Select from different templates like questions, funny remarks, agreements, or insights to quickly craft engaging responses.
+
+![X Reply Bot in action](./screenshots/main-demo.png)
+*X Reply Bot generating a contextual reply using the Question template*
 
 ## Features
 
-- 🤖 AI-powered reply generation using OpenAI models (GPT-4, GPT-3.5-turbo, and more)
+- 🤖 AI-powered reply generation using OpenAI models (GPT-4, GPT-4o, GPT-3.5-turbo, and more)
 - 📝 Multiple reply templates (Question, Funny Remark, Agreement, Add Insight)
 - 🎨 Clean UI that integrates seamlessly with X's interface
-- 🌓 Dark mode support
 - ⚡ Fast response generation
 - 🔒 Secure API key storage
 - ⚙️ Customizable system prompt
 - 🎛️ Advanced AI parameter controls
+
+### Reply Templates
+![Reply Templates](./screenshots/templates.png)
+*Available reply templates appear below the reply box*
+
+### Settings Interface
+![Settings Popup](./screenshots/settings.png)
+*Configure your API key, model selection, and advanced parameters*
 
 ## Setup
 
@@ -46,6 +56,9 @@ npm run build
 3. Click "Load unpacked"
 4. Select the `reply-bot` directory
 
+![Loading the extension](./screenshots/load-extension.png)
+*Loading the unpacked extension in Chrome*
+
 ### Configuration
 
 1. Click the extension icon in your Chrome toolbar
@@ -59,13 +72,17 @@ npm run build
    - Frequency penalty (reduces repetition)
 6. Click "Save Settings"
 
+![Advanced Settings](./screenshots/advanced-settings.png)
+*Fine-tune the AI parameters for better responses*
+
 ## Usage
 
-1. Go to X/X
+1. Go to X/Twitter
 2. Click "Reply" on any tweet
 3. You'll see AI template buttons below the reply box
 4. Click a template to generate a contextual reply
 5. Edit the generated text as needed before posting
+
 
 ## Development
 
@@ -118,7 +135,7 @@ The extension includes 4 default templates:
 - API keys are stored locally in Chrome's secure storage
 - Settings and preferences are stored locally
 - No data is sent to third parties except OpenAI for reply generation
-- The extension only activates on X/X domains
+- The extension only activates on X/Twitter domains
 
 ## Troubleshooting
 
@@ -163,3 +180,8 @@ The current icons are placeholders. For production use, please create proper ico
 - 128x128px (icon128.png)
 
 You can use tools like [Figma](https://figma.com) or [Canva](https://canva.com) to design your icons. 
+
+## TODOS
+- [ ] Add support non-OpenAI large language models
+- [ ] Add unit/integration tests
+- [ ] Dark mode support
