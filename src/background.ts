@@ -24,9 +24,13 @@ class BackgroundService {
     }
 
     private async init() {
-        // Load the default prompt
-        this.defaultSystemPrompt = await loadDefaultSystemPrompt();
-        this.setupMessageListener();
+        try {
+            // Load the default prompt
+            this.defaultSystemPrompt = await loadDefaultSystemPrompt();
+            this.setupMessageListener();
+        } catch (error) {
+            console.error('X Reply Bot: Failed to initialize background service:', error);
+        }
     }
 
     private setupMessageListener() {
@@ -166,5 +170,5 @@ class BackgroundService {
     }
 }
 
-// Initialize the background service
-new BackgroundService(); 
+// Initialize the service worker
+new BackgroundService();

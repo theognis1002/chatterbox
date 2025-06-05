@@ -1,8 +1,5 @@
 // Content script for X Reply Bot
-import './styles.css';
 import { DEFAULT_TEMPLATES, GenerateReplyRequest, GenerateReplyResponse, ReplyTemplate } from './types';
-
-console.log('X Reply Bot: Content script loaded!');
 
 class XReplyBot {
     private templates: ReplyTemplate[] = DEFAULT_TEMPLATES;
@@ -10,7 +7,6 @@ class XReplyBot {
     private observer: MutationObserver | null = null;
 
     constructor() {
-        console.log('X Reply Bot: Initializing...');
         this.init();
     }
 
@@ -71,13 +67,11 @@ class XReplyBot {
         const replyButtons = node.querySelectorAll('[data-testid="tweetButtonInline"]');
 
         replyButtons.forEach((button) => {
-            console.log('X Reply Bot: Found Reply button');
             this.injectButtonsNearReplyButton(button as HTMLElement);
         });
 
         // Also check if the node itself is a reply button
         if (node.getAttribute('data-testid') === 'tweetButtonInline') {
-            console.log('X Reply Bot: Node itself is Reply button');
             this.injectButtonsNearReplyButton(node);
         }
     }
@@ -86,7 +80,7 @@ class XReplyBot {
         // Check if we already injected buttons in this area
         const toolbar = replyButton.closest('[data-testid="toolBar"]') as HTMLElement;
         if (!toolbar) {
-            console.log('X Reply Bot: Could not find toolbar for Reply button');
+            console.warn('X Reply Bot: Could not find toolbar for Reply button');
             return;
         }
 
@@ -106,8 +100,6 @@ class XReplyBot {
 
         // Insert after the toolbar
         toolbar.parentElement?.insertBefore(buttonContainer, toolbar.nextSibling);
-
-        console.log('X Reply Bot: Buttons injected successfully!');
     }
 
     private findAssociatedTextArea(toolbar: HTMLElement): HTMLElement | null {
@@ -190,7 +182,6 @@ class XReplyBot {
         while (parent && parent !== document.body) {
             const toolbar = parent.querySelector('[data-testid="toolBar"]');
             if (toolbar) {
-                console.log('X Reply Bot: Found toolbar via parent search');
                 return toolbar as HTMLElement;
             }
             parent = parent.parentElement;
@@ -203,7 +194,6 @@ class XReplyBot {
             if (mainContainer) {
                 const toolbar = mainContainer.querySelector('[data-testid="toolBar"]');
                 if (toolbar) {
-                    console.log('X Reply Bot: Found toolbar via DraftEditor structure');
                     return toolbar as HTMLElement;
                 }
             }
@@ -265,8 +255,6 @@ class XReplyBot {
                 throw new Error('Could not find tweet content');
             }
 
-            console.log('X Reply Bot: Generating reply for tweet:', tweetContent);
-
             // Send request to background script
             const request: GenerateReplyRequest = {
                 tweetContent,
@@ -290,8 +278,6 @@ class XReplyBot {
                 // Re-throw other errors
                 throw error;
             }
-
-            console.log('X Reply Bot: Received response:', response);
 
             if (!response) {
                 throw new Error('No response from extension. Please refresh the page and try again.');
@@ -340,12 +326,10 @@ class XReplyBot {
     }
 
     private async autoLikePost() {
-        console.log('X Reply Bot: Attempting to auto-like post...');
-
         // Find the tweet article we're replying to
         const article = document.querySelector('article[data-testid="tweet"]');
         if (!article) {
-            console.log('X Reply Bot: Could not find tweet article');
+            console.warn('X Reply Bot: Could not find tweet article');
             return;
         }
 
@@ -353,13 +337,12 @@ class XReplyBot {
         const likeButton = article.querySelector('[data-testid="like"]');
 
         if (!likeButton) {
-            console.log('X Reply Bot: Could not find like button');
+            console.warn('X Reply Bot: Could not find like button');
             return;
         }
 
         // Click the like button
         (likeButton as HTMLElement).click();
-        console.log('X Reply Bot: Liked the post!');
 
         // Small delay to ensure the like is registered
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -401,8 +384,6 @@ class XReplyBot {
             return;
         }
 
-        console.log('X Reply Bot: Inserting reply:', reply);
-
         // Focus the element first
         textArea.focus();
 
@@ -420,7 +401,6 @@ class XReplyBot {
 
         // Get current content to check if we need to clear
         const currentContent = editableElement.textContent || '';
-        console.log('X Reply Bot: Current content before clear:', currentContent);
 
         if (currentContent.trim() !== '') {
             // Select all content
@@ -480,8 +460,6 @@ class XReplyBot {
         finalRange.collapse(false);
         finalSelection?.removeAllRanges();
         finalSelection?.addRange(finalRange);
-
-        console.log('X Reply Bot: Reply insertion complete');
     }
 }
 

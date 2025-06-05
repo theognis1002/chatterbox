@@ -6,7 +6,8 @@ module.exports = {
     entry: {
         content: './src/content.ts',
         background: './src/background.ts',
-        popup: './src/popup.ts'
+        popup: './src/popup.ts',
+        styles: './src/styles.css'
     },
     module: {
         rules: [
@@ -17,17 +18,28 @@ module.exports = {
             },
             {
                 test: /\.css$/,
-                use: [MiniCssExtractPlugin.loader, 'css-loader'],
+                use: [
+                    {
+                        loader: MiniCssExtractPlugin.loader,
+                        options: {
+                            publicPath: './'
+                        }
+                    },
+                    'css-loader'
+                ],
             },
         ],
     },
     resolve: {
-        extensions: ['.tsx', '.ts', '.js'],
+        extensions: ['.tsx', '.ts', '.js', '.css'],
     },
     output: {
         filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),
         clean: true,
+    },
+    experiments: {
+        topLevelAwait: true,
     },
     plugins: [
         new MiniCssExtractPlugin({
@@ -42,6 +54,7 @@ module.exports = {
                         // Fix paths in manifest to point to correct locations
                         const manifest = JSON.parse(content);
                         manifest.background.service_worker = 'background.js';
+                        manifest.background.type = 'module'; // Ensure module type is set
                         manifest.content_scripts[0].js = ['content.js'];
                         manifest.content_scripts[0].css = ['styles.css'];
                         return JSON.stringify(manifest, null, 2);

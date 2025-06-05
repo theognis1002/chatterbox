@@ -22,7 +22,7 @@
         }
     ],
     "background": {
-        "service_worker": "dist/background.js",
+        "service_worker": "background.js",
         "type": "module"
     },
     "content_scripts": [
@@ -32,10 +32,10 @@
                 "https://x.com/*"
             ],
             "js": [
-                "dist/content.js"
+                "content.js"
             ],
             "css": [
-                "dist/styles.css"
+                "styles.css"
             ]
         }
     ],
