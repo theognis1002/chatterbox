@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Twitter Reply Bot",
     "version": "1.0.0",
-    "description": "Auto-generate witty Twitter replies using AI",
+    "description": "AI-powered contextual reply generator for Twitter",
     "permissions": [
         "storage",
         "activeTab"
@@ -10,6 +10,16 @@
     "host_permissions": [
         "https://twitter.com/*",
         "https://x.com/*"
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "prompts/default-system-prompt.txt"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
     ],
     "background": {
         "service_worker": "dist/background.js",

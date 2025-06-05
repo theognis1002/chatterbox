@@ -1,8 +1,31 @@
 // Background service worker for Twitter Reply Bot
 import { GenerateReplyRequest, GenerateReplyResponse } from './types';
+import { loadDefaultSystemPrompt } from './utils/promptLoader';
+
+interface AdvancedSettings {
+    temperature: number;
+    maxTokens: number;
+    presencePenalty: number;
+    frequencyPenalty: number;
+}
+
+const DEFAULT_SETTINGS: AdvancedSettings = {
+    temperature: 0.7,
+    maxTokens: 50,
+    presencePenalty: 0.6,
+    frequencyPenalty: 0.3
+};
 
 class BackgroundService {
+    private defaultSystemPrompt: string = 'Loading...';
+
     constructor() {
+        this.init();
+    }
+
+    private async init() {
+        // Load the default prompt
+        this.defaultSystemPrompt = await loadDefaultSystemPrompt();
         this.setupMessageListener();
     }
 
@@ -29,8 +52,9 @@ class BackgroundService {
         sendResponse: (response: GenerateReplyResponse) => void
     ) {
         try {
-            // Get API key from storage
-            const { apiKey } = await chrome.storage.sync.get(['apiKey']);
+            // Get all settings from storage
+            const { apiKey, model, systemPrompt, advancedSettings } =
+                await chrome.storage.sync.get(['apiKey', 'model', 'systemPrompt', 'advancedSettings']);
 
             if (!apiKey) {
                 sendResponse({
@@ -41,7 +65,13 @@ class BackgroundService {
             }
 
             // Generate the reply using OpenAI
-            const reply = await this.callOpenAI(apiKey, request);
+            const reply = await this.callOpenAI(
+                apiKey,
+                model || 'gpt-3.5-turbo',
+                systemPrompt || this.defaultSystemPrompt,
+                advancedSettings || DEFAULT_SETTINGS,
+                request
+            );
 
             sendResponse({ reply });
         } catch (error) {
@@ -53,10 +83,16 @@ class BackgroundService {
         }
     }
 
-    private async callOpenAI(apiKey: string, request: GenerateReplyRequest): Promise<string> {
+    private async callOpenAI(
+        apiKey: string,
+        model: string,
+        systemPrompt: string,
+        settings: AdvancedSettings,
+        request: GenerateReplyRequest
+    ): Promise<string> {
         const { tweetContent, template } = request;
 
-        const systemPrompt = `You are an active Twitter user in the tech industry who is building a following. Generate concise, colloquial/informal, intelligent, engaging replies that fit Twitter's character limit. Do NOT use hashtags, apostrophes, emojis, or em dashes. Write responses in all lowercase. ${template.prompt}`;
+        const finalSystemPrompt = `${systemPrompt} ${template.prompt}`;
 
         if (tweetContent) {
             var userPrompt = `Generate a reply to this tweet: "${tweetContent}"`;
@@ -72,15 +108,15 @@ class BackgroundService {
                     'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-4o',
+                    model: model,
                     messages: [
-                        { role: 'system', content: systemPrompt },
+                        { role: 'system', content: finalSystemPrompt },
                         { role: 'user', content: userPrompt }
                     ],
-                    max_tokens: 50,
-                    temperature: 0.1,
-                    presence_penalty: 0.6,
-                    frequency_penalty: 0.3
+                    max_tokens: settings.maxTokens,
+                    temperature: settings.temperature,
+                    presence_penalty: settings.presencePenalty,
+                    frequency_penalty: settings.frequencyPenalty
                 })
             });
 
@@ -107,6 +143,11 @@ class BackgroundService {
 
     private formatReplyContent(content: string): string {
         let formattedContent = content;
+
+        // Remove surrounding quotes if they exist
+        if (formattedContent.startsWith('"') && formattedContent.endsWith('"')) {
+            formattedContent = formattedContent.slice(1, -1);
+        }
 
         // Remove trailing period if it exists
         if (formattedContent.endsWith('.')) {

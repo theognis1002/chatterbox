@@ -63,7 +63,7 @@ export const DEFAULT_TEMPLATES: ReplyTemplate[] = [
     {
         id: 'promote',
         name: 'Promote',
-        prompt: 'Generate a concise response that promotes WraithScan (wraithscan.com) - security scanning and automated penetration testing for web apps.',
+        prompt: 'Generate a concise response that promotes wraithscan.com (always put the link in the response) - security scanning and automated penetration testing for web apps.',
         icon: '🚀'
     },
     {
