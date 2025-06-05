@@ -35,8 +35,21 @@ module.exports = {
         }),
         new CopyPlugin({
             patterns: [
+                {
+                    from: 'manifest.json',
+                    to: 'manifest.json',
+                    transform(content) {
+                        // Fix paths in manifest to point to correct locations
+                        const manifest = JSON.parse(content);
+                        manifest.background.service_worker = 'background.js';
+                        manifest.content_scripts[0].js = ['content.js'];
+                        manifest.content_scripts[0].css = ['styles.css'];
+                        return JSON.stringify(manifest, null, 2);
+                    }
+                },
                 { from: 'popup.html', to: 'popup.html' },
                 { from: 'icons', to: 'icons' },
+                { from: 'src/prompts', to: 'prompts' },
             ],
         }),
     ],

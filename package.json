@@ -5,7 +5,9 @@
     "scripts": {
         "build": "webpack --mode production",
         "dev": "webpack --mode development --watch",
-        "clean": "rm -rf dist"
+        "clean": "rm -rf dist",
+        "zip": "cd dist && zip -r ../x-reply-bot.zip . && cd ..",
+        "package": "npm run clean && npm run build && npm run zip"
     },
     "dependencies": {
         "openai": "^4.20.0"
