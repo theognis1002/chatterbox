@@ -77,10 +77,15 @@ class XReplyBot {
     }
 
     private injectButtonsNearReplyButton(replyButton: HTMLElement) {
-        // Check if we already injected buttons in this area
-        const toolbar = replyButton.closest('[data-testid="toolBar"]') as HTMLElement;
+        // Find a common ancestor for the reply button and toolbar/text area
+        const composerRoot = replyButton.closest('div[data-testid="cellInnerDiv"], div[role="dialog"]');
+
+        if (!composerRoot) {
+            return;
+        }
+
+        const toolbar = composerRoot.querySelector('[data-testid="toolBar"]') as HTMLElement;
         if (!toolbar) {
-            console.warn('X Reply Bot: Could not find toolbar for Reply button');
             return;
         }
 
@@ -90,7 +95,7 @@ class XReplyBot {
         }
 
         // Find the text area associated with this reply button
-        const textArea = this.findAssociatedTextArea(toolbar);
+        const textArea = composerRoot.querySelector('[contenteditable="true"][role="textbox"]') as HTMLElement;
         if (!textArea) {
             return;
         }
@@ -234,17 +239,65 @@ class XReplyBot {
         button.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            await this.generateReply(template, textArea);
+            await this.generateReply(e, template, textArea);
         });
 
         return button;
     }
 
-    private async generateReply(template: ReplyTemplate, textArea: HTMLElement) {
+    private async sendMessageWithRetry<TRequest, TResponse>(request: TRequest, maxRetries = 3, delayMs = 200): Promise<TResponse> {
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                const response = await chrome.runtime.sendMessage(request) as TResponse;
+                return response;
+            } catch (error) {
+                if (error instanceof Error && error.message.includes('Could not establish connection')) {
+                    // Give the service worker time to spin up and try again
+                    await new Promise(res => setTimeout(res, delayMs));
+                    continue;
+                }
+                throw error; // propagate other errors
+            }
+        }
+        throw new Error('Failed to communicate with extension background script.');
+    }
+
+    private async generateReply(event: MouseEvent, template: ReplyTemplate, textArea: HTMLElement) {
+        const button = event.currentTarget as HTMLButtonElement;
+        const originalText = button.innerHTML;
+
+        let currentTextArea: HTMLElement | null = textArea;
+
+        // Check if the text area is still in the document
+        if (!currentTextArea || !currentTextArea.isConnected) {
+            console.log('X Reply Bot: Text area is stale, trying to find it again.');
+            const buttonContainer = button.closest('.reply-bot-container');
+            const toolbar = buttonContainer?.previousElementSibling as HTMLElement;
+
+            if (toolbar && toolbar.getAttribute('data-testid') === 'toolBar') {
+                const newTextArea = this.findAssociatedTextArea(toolbar);
+                if (newTextArea) {
+                    console.log('X Reply Bot: Found new text area.');
+                    currentTextArea = newTextArea;
+                } else {
+                    console.warn('X Reply Bot: Could not re-find associated text area.');
+                    currentTextArea = null;
+                }
+            } else {
+                console.warn('X Reply Bot: Could not find toolbar to re-find text area.');
+                currentTextArea = null;
+            }
+        }
+
+        if (!currentTextArea) {
+            alert('X Reply Bot: Could not find the reply text area. Please try again.');
+            button.innerHTML = originalText;
+            button.disabled = false;
+            return;
+        }
+
         try {
             // Show loading state
-            const button = event?.target as HTMLButtonElement;
-            const originalText = button.innerHTML;
             button.innerHTML = '⏳ Generating...';
             button.disabled = true;
 
@@ -264,7 +317,7 @@ class XReplyBot {
             let response: GenerateReplyResponse;
 
             try {
-                response = await chrome.runtime.sendMessage({
+                response = await this.sendMessageWithRetry({
                     action: 'generateReply',
                     data: request
                 });
@@ -292,7 +345,7 @@ class XReplyBot {
             }
 
             // Insert the generated reply
-            await this.insertReply(response.reply, textArea);
+            await this.insertReply(response.reply, currentTextArea);
 
             // Auto-like the post
             await this.autoLikePost();
@@ -317,9 +370,8 @@ class XReplyBot {
             alert(`Error: ${errorMessage}`);
 
             // Reset button
-            const button = event?.target as HTMLButtonElement;
             if (button) {
-                button.innerHTML = button.title.replace('Generate ', '');
+                button.innerHTML = originalText;
                 button.disabled = false;
             }
         }
@@ -384,82 +436,102 @@ class XReplyBot {
             return;
         }
 
-        // Focus the element first
-        textArea.focus();
+        // Helper to check if an element is the editable tweet textbox
+        const isEditableTextbox = (el: Element | null): el is HTMLElement => {
+            return !!el && el instanceof HTMLElement && el.isContentEditable && el.getAttribute('role') === 'textbox';
+        };
 
-        // Find the actual contenteditable element
-        const editableElement = textArea.hasAttribute('contenteditable') ? textArea :
-            textArea.querySelector('[contenteditable="true"]') as HTMLElement || textArea;
+        // Helper to find the active editable element, as it may be replaced by the framework.
+        const findEditable = (): HTMLElement | null => {
+            // 1. If the original textArea is still connected, prefer it.
+            if (textArea.isConnected && isEditableTextbox(textArea)) {
+                return textArea;
+            }
+
+            // 2. If the currently focused element is a textbox, use that.
+            if (isEditableTextbox(document.activeElement)) {
+                return document.activeElement as HTMLElement;
+            }
+
+            // 3. Fallback: pick the first contenteditable textbox in the document.
+            const candidate = document.querySelector<HTMLElement>('[contenteditable="true"][role="textbox"]');
+            if (candidate) {
+                return candidate;
+            }
+
+            return null;
+        };
+
+        let editableElement = findEditable();
 
         if (!editableElement) {
-            console.error('X Reply Bot: Could not find editable element');
-            return;
+            console.warn('X Reply Bot: Editable element was disconnected during typing, attempting to recover.');
+            // Try once more after a short wait in case the framework is re-rendering.
+            await new Promise(r => setTimeout(r, 30));
+            editableElement = findEditable();
+        }
+        if (!editableElement) {
+            console.warn('X Reply Bot: Could not recover editable element. Aborting reply typing.');
+            alert('X Reply Bot: Could not continue typing because the reply box disappeared.');
+            return; // Exit gracefully
         }
 
-        // Clear existing content by selecting all and deleting
+        // Focus and clear existing content
         editableElement.focus();
-
-        // Get current content to check if we need to clear
-        const currentContent = editableElement.textContent || '';
-
-        if (currentContent.trim() !== '') {
-            // Select all content
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(editableElement);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-
-            // Delete selected content
+        if ((editableElement.textContent || '').trim() !== '') {
+            document.execCommand('selectAll', false);
             document.execCommand('delete', false);
-
-            // Clear the selection
-            selection?.removeAllRanges();
         }
 
         // Type each character
-        for (let i = 0; i < reply.length; i++) {
-            const char = reply[i];
+        for (const char of reply) {
+            // Re-find the element on each iteration to ensure we have a fresh reference.
+            editableElement = findEditable();
+            if (!editableElement) {
+                console.warn('X Reply Bot: Editable element was disconnected during typing.');
+                alert('X Reply Bot: Reply cancelled because the text box was closed.');
+                return; // Exit gracefully
+            }
 
-            // Focus before each character
             editableElement.focus();
-
-            // Use execCommand for actual character insertion
             document.execCommand('insertText', false, char);
 
-            // Trigger input event for each character
-            const inputEvent = new InputEvent('input', {
+            editableElement.dispatchEvent(new InputEvent('input', {
                 bubbles: true,
                 cancelable: true,
                 inputType: 'insertText',
                 data: char,
                 composed: true
-            });
-            editableElement.dispatchEvent(inputEvent);
+            }));
 
-            // Small delay to simulate human typing (optional, but can help with some sites)
-            if (i % 10 === 0) {
-                await new Promise(resolve => setTimeout(resolve, 10));
-            }
+            // A small delay allows the site's JS to process the input,
+            // which can prevent race conditions and make typing more reliable.
+            await new Promise(resolve => setTimeout(resolve, 5));
         }
 
-        // Final input event for the complete text
-        const finalInputEvent = new InputEvent('input', {
+        // After typing, re-find the element one last time for final operations.
+        editableElement = findEditable();
+        if (!editableElement) {
+            return; // Silently exit if element is gone.
+        }
+
+        // Dispatch a final input event to trigger any logic that depends on the full text.
+        editableElement.dispatchEvent(new InputEvent('input', {
             bubbles: true,
             cancelable: true,
-            inputType: 'insertRecomposeText',
-            composed: true
-        });
-        editableElement.dispatchEvent(finalInputEvent);
+            composed: true,
+        }));
 
-        // Ensure focus and cursor at end
+        // Set cursor to the end
         editableElement.focus();
-        const finalSelection = window.getSelection();
-        const finalRange = document.createRange();
-        finalRange.selectNodeContents(editableElement);
-        finalRange.collapse(false);
-        finalSelection?.removeAllRanges();
-        finalSelection?.addRange(finalRange);
+        const selection = window.getSelection();
+        if (selection) {
+            const range = document.createRange();
+            range.selectNodeContents(editableElement);
+            range.collapse(false); // false to collapse to the end
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
     }
 }
 
