@@ -4,7 +4,11 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
     entry: {
-        content: './src/content.ts',
+        // Site-specific content scripts
+        content_x: './src/content.ts',
+        content_linkedin: './src/content_linkedin.ts',
+
+        // Shared scripts
         background: './src/background.ts',
         popup: './src/popup.ts',
         styles: './src/styles.css'
@@ -53,10 +57,9 @@ module.exports = {
                     transform(content) {
                         // Fix paths in manifest to point to correct locations
                         const manifest = JSON.parse(content);
+                        // Ensure the service worker path and type are correct
                         manifest.background.service_worker = 'background.js';
-                        manifest.background.type = 'module'; // Ensure module type is set
-                        manifest.content_scripts[0].js = ['content.js'];
-                        manifest.content_scripts[0].css = ['styles.css'];
+                        manifest.background.type = 'module';
                         return JSON.stringify(manifest, null, 2);
                     }
                 },

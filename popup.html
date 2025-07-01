@@ -153,12 +153,28 @@
       </div>
 
       <div id="templatesContent" class="tab-content">
-        <div class="templates-section">
-          <div class="templates-list" id="templatesList">
-            <!-- Templates will be dynamically inserted here -->
+        <!-- Sub-tabs for X vs LinkedIn -->
+        <div class="tab-buttons sub-tab-buttons">
+          <button id="xTemplatesSubTab" class="tab-button small active">X Replies</button>
+          <button id="linkedinTemplatesSubTab" class="tab-button small">LinkedIn Connect</button>
+        </div>
+
+        <!-- X Templates section -->
+        <div id="templatesXContent" class="sub-tab-content active">
+          <div class="templates-section">
+            <div class="templates-list" id="templatesXList"></div>
+            <button id="addXTemplateButton" class="add-button">Add Template</button>
+            <button id="resetXTemplatesButton" class="reset-button">Reset to Defaults</button>
           </div>
-          <button id="addTemplateButton" class="add-button">Add Template</button>
-          <button id="resetTemplatesButton" class="reset-button">Reset to Defaults</button>
+        </div>
+
+        <!-- LinkedIn Connect Messages section -->
+        <div id="templatesLinkedInContent" class="sub-tab-content">
+          <div class="templates-section">
+            <div class="templates-list" id="templatesLinkedInList"></div>
+            <button id="addLinkedInTemplateButton" class="add-button">Add Message</button>
+            <button id="resetLinkedInTemplatesButton" class="reset-button">Reset to Defaults</button>
+          </div>
         </div>
       </div>
     </div>

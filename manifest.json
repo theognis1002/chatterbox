@@ -1,15 +1,17 @@
 {
     "manifest_version": 3,
-    "name": "X Reply Bot",
+    "name": "Social Reply Bot",
     "version": "1.0.0",
-    "description": "AI-powered contextual reply generator for X",
+    "description": "AI-powered contextual reply generator for X & LinkedIn",
     "permissions": [
         "storage",
         "activeTab"
     ],
     "host_permissions": [
         "https://twitter.com/*",
-        "https://x.com/*"
+        "https://x.com/*",
+        "https://www.linkedin.com/*",
+        "https://linkedin.com/*"
     ],
     "web_accessible_resources": [
         {
@@ -32,7 +34,19 @@
                 "https://x.com/*"
             ],
             "js": [
-                "content.js"
+                "content_x.js"
+            ],
+            "css": [
+                "styles.css"
+            ]
+        },
+        {
+            "matches": [
+                "https://www.linkedin.com/*",
+                "https://linkedin.com/*"
+            ],
+            "js": [
+                "content_linkedin.js"
             ],
             "css": [
                 "styles.css"
