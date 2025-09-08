@@ -1,5 +1,7 @@
-// Content script for LinkedIn Reply Bot
-// Adds template buttons to the "Add a note" connection modal and inserts the chosen message.
+// Content script for Chatterbox (LinkedIn)
+// Adds template buttons to the "Add a note" connection modal and post comment areas
+
+import { DEFAULT_TEMPLATES, GenerateReplyRequest, GenerateReplyResponse, ReplyTemplate } from './types';
 
 interface LinkedInTemplate {
     id: string;
@@ -23,10 +25,12 @@ const DEFAULT_LINKEDIN_TEMPLATES: LinkedInTemplate[] = [
     }
 ];
 
-class LinkedInReplyBot {
+class ChatterboxLinkedIn {
     private templates: LinkedInTemplate[] = DEFAULT_LINKEDIN_TEMPLATES;
+    private postReplyTemplates: ReplyTemplate[] = DEFAULT_TEMPLATES;
     private observer: MutationObserver | null = null;
     private injectedModals = new WeakSet<HTMLTextAreaElement>();
+    private injectedCommentAreas = new WeakSet<HTMLElement>();
     private currentRecipientName: string | null = null;
     private lastUrl: string = location.href;
 
@@ -35,16 +39,20 @@ class LinkedInReplyBot {
     }
 
     private async init() {
-        // Allow future custom LinkedIn templates stored under a dedicated key.
-        const result = await chrome.storage.sync.get(['linkedinTemplates']);
+        // Load custom LinkedIn templates stored under a dedicated key.
+        const result = await chrome.storage.sync.get(['linkedinTemplates', 'templates']);
         if (result.linkedinTemplates && Array.isArray(result.linkedinTemplates)) {
             this.templates = result.linkedinTemplates;
+        }
+        // Load post reply templates (same as X/Twitter)
+        if (result.templates && Array.isArray(result.templates)) {
+            this.postReplyTemplates = result.templates;
         }
 
         this.captureRecipientNameOnClicks();
         this.monitorUrlChanges();
         this.startObserving();
-        // Initial scan – in case modal is already present when the script loads.
+        // Initial scan – in case modal or comment areas are already present when the script loads.
         this.scanNode(document.body);
     }
 
@@ -71,16 +79,54 @@ class LinkedInReplyBot {
     }
 
     /**
-     * Recursively scan the provided node (and its descendants) for the textarea used in the connection modal.
+     * Recursively scan the provided node (and its descendants) for textareas and comment boxes.
      */
     private scanNode(root: HTMLElement) {
-        // Look for any textarea with id="custom-message" – LinkedIn uses this in the invite modal.
+        // Look for connection modal textarea
         const textareas = root.querySelectorAll<HTMLTextAreaElement>('textarea#custom-message');
-        textareas.forEach((ta) => this.injectButtons(ta));
+        textareas.forEach((ta) => this.injectConnectionButtons(ta));
 
         // Also handle the case where the root itself is the textarea.
         if (root instanceof HTMLTextAreaElement && root.id === 'custom-message') {
-            this.injectButtons(root);
+            this.injectConnectionButtons(root);
+        }
+
+        // Look for post comment areas
+        this.scanForCommentAreas(root);
+    }
+
+    /**
+     * Scan for LinkedIn post comment areas where we should inject reply buttons
+     */
+    private scanForCommentAreas(root: HTMLElement) {
+        // LinkedIn comment selectors - target various comment input patterns
+        const commentSelectors = [
+            '.comments-comment-box__form',
+            '.comments-comment-box-comment__text-editor',
+            '[data-test-id="comments-comment-texteditor"]',
+            '.comments-comment-box textarea',
+            '.comments-comment-box [contenteditable="true"]',
+            'form[data-test-id="comment-form"]',
+            '.comment-form',
+            '[aria-label*="Add a comment"]',
+            '[placeholder*="Add a comment"]'
+        ];
+
+        for (const selector of commentSelectors) {
+            const elements = root.querySelectorAll(selector);
+            elements.forEach((element) => {
+                if (element instanceof HTMLElement) {
+                    this.injectPostReplyButtons(element);
+                }
+            });
+        }
+
+        // Also check if the root itself matches any of these selectors
+        for (const selector of commentSelectors) {
+            if (root.matches && root.matches(selector)) {
+                this.injectPostReplyButtons(root);
+                break;
+            }
         }
     }
 
@@ -229,7 +275,7 @@ class LinkedInReplyBot {
 
 // Initialize the bot once the page is ready.
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => new LinkedInReplyBot());
+    document.addEventListener('DOMContentLoaded', () => new ChatterboxLinkedIn());
 } else {
-    new LinkedInReplyBot();
+    new ChatterboxLinkedIn();
 } 

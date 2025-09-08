@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "Chatterbox",
-    "version": "1.0.0",
-    "description": "AI-powered contextual reply generator for X & LinkedIn",
+    "version": "1.0.1",
+    "description": "Chrome extension for generating AI-powered social media replies",
     "permissions": [
         "storage",
         "activeTab"

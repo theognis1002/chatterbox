@@ -1,4 +1,4 @@
-// Popup script for X Reply Bot
+// Popup script for Chatterbox
 import { loadDefaultSystemPrompt } from './utils/promptLoader';
 import { DEFAULT_TEMPLATES, ReplyTemplate } from './types';
 
@@ -477,13 +477,13 @@ class PopupManager {
                 this.linkedinTemplates = [
                     {
                         id: 'connect1',
-                        name: 'Message #1',
+                        name: 'Share Insights',
                         prompt: 'Hi {name}, I came across your profile and would love to connect to share insights and opportunities.',
-                        icon: '🔗'
+                        icon: '👋'
                     },
                     {
                         id: 'connect2',
-                        name: 'Message #2',
+                        name: 'Work Interest',
                         prompt: 'Hello {name}! I found your work fascinating and would be happy to connect and keep in touch.',
                         icon: '🔗'
                     }

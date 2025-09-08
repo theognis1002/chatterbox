@@ -1,4 +1,4 @@
-// Type definitions for X Reply Bot
+// Type definitions for Chatterbox
 
 export interface ReplyTemplate {
     id: string;

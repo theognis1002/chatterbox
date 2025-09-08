@@ -1,7 +1,7 @@
-// Content script for X Reply Bot
+// Content script for Chatterbox
 import { DEFAULT_TEMPLATES, GenerateReplyRequest, GenerateReplyResponse, ReplyTemplate } from './types';
 
-class XReplyBot {
+class Chatterbox {
     private templates: ReplyTemplate[] = DEFAULT_TEMPLATES;
     private buttonsInjected = new WeakSet<HTMLElement>();
     private observer: MutationObserver | null = null;
@@ -157,13 +157,13 @@ class XReplyBot {
         // Find the toolbar
         const toolbar = this.findToolbar(textArea);
         if (!toolbar) {
-            console.log('X Reply Bot: Could not find toolbar');
+            console.log('Chatterbox: Could not find toolbar');
             return;
         }
 
         // Check if buttons already exist in this area
         if (toolbar.parentElement?.querySelector('.reply-bot-container')) {
-            console.log('X Reply Bot: Buttons already exist in this area');
+            console.log('Chatterbox: Buttons already exist in this area');
             return;
         }
 
@@ -176,7 +176,7 @@ class XReplyBot {
         // Mark this text area as having buttons
         this.buttonsInjected.add(textArea);
 
-        console.log('X Reply Bot: Buttons injected successfully!');
+        console.log('Chatterbox: Buttons injected successfully!');
     }
 
     private findToolbar(textArea: HTMLElement): HTMLElement | null {
@@ -270,27 +270,27 @@ class XReplyBot {
 
         // Check if the text area is still in the document
         if (!currentTextArea || !currentTextArea.isConnected) {
-            console.log('X Reply Bot: Text area is stale, trying to find it again.');
+            console.log('Chatterbox: Text area is stale, trying to find it again.');
             const buttonContainer = button.closest('.reply-bot-container');
             const toolbar = buttonContainer?.previousElementSibling as HTMLElement;
 
             if (toolbar && toolbar.getAttribute('data-testid') === 'toolBar') {
                 const newTextArea = this.findAssociatedTextArea(toolbar);
                 if (newTextArea) {
-                    console.log('X Reply Bot: Found new text area.');
+                    console.log('Chatterbox: Found new text area.');
                     currentTextArea = newTextArea;
                 } else {
-                    console.warn('X Reply Bot: Could not re-find associated text area.');
+                    console.warn('Chatterbox: Could not re-find associated text area.');
                     currentTextArea = null;
                 }
             } else {
-                console.warn('X Reply Bot: Could not find toolbar to re-find text area.');
+                console.warn('Chatterbox: Could not find toolbar to re-find text area.');
                 currentTextArea = null;
             }
         }
 
         if (!currentTextArea) {
-            alert('X Reply Bot: Could not find the reply text area. Please try again.');
+            alert('Chatterbox: Could not find the reply text area. Please try again.');
             button.innerHTML = originalText;
             button.disabled = false;
             return;
@@ -325,7 +325,7 @@ class XReplyBot {
                 // Check if it's an extension context invalidated error
                 if (error instanceof Error && error.message.includes('Extension context invalidated')) {
                     // Show user-friendly message
-                    alert('The extension was updated. Please refresh the page to continue using X Reply Bot.');
+                    alert('The extension was updated. Please refresh the page to continue using Chatterbox.');
                     throw error;
                 }
                 // Re-throw other errors
@@ -381,7 +381,7 @@ class XReplyBot {
         // Find the tweet article we're replying to
         const article = document.querySelector('article[data-testid="tweet"]');
         if (!article) {
-            console.warn('X Reply Bot: Could not find tweet article');
+            console.warn('Chatterbox: Could not find tweet article');
             return;
         }
 
@@ -389,7 +389,7 @@ class XReplyBot {
         const likeButton = article.querySelector('[data-testid="like"]');
 
         if (!likeButton) {
-            console.warn('X Reply Bot: Could not find like button');
+            console.warn('Chatterbox: Could not find like button');
             return;
         }
 
@@ -432,7 +432,7 @@ class XReplyBot {
     private async insertReply(reply: string, textArea: HTMLElement) {
         // Validate reply
         if (!reply || reply.trim() === '') {
-            console.error('X Reply Bot: Cannot insert empty reply');
+            console.error('Chatterbox: Cannot insert empty reply');
             return;
         }
 
@@ -469,14 +469,14 @@ class XReplyBot {
         let editableElement = findEditable();
 
         if (!editableElement) {
-            console.warn('X Reply Bot: Editable element was disconnected during typing, attempting to recover.');
+            console.warn('Chatterbox: Editable element was disconnected during typing, attempting to recover.');
             // Try once more after a short wait in case the framework is re-rendering.
             await new Promise(r => setTimeout(r, 30));
             editableElement = findEditable();
         }
         if (!editableElement) {
-            console.warn('X Reply Bot: Could not recover editable element. Aborting reply typing.');
-            alert('X Reply Bot: Could not continue typing because the reply box disappeared.');
+            console.warn('Chatterbox: Could not recover editable element. Aborting reply typing.');
+            alert('Chatterbox: Could not continue typing because the reply box disappeared.');
             return; // Exit gracefully
         }
 
@@ -492,8 +492,8 @@ class XReplyBot {
             // Re-find the element on each iteration to ensure we have a fresh reference.
             editableElement = findEditable();
             if (!editableElement) {
-                console.warn('X Reply Bot: Editable element was disconnected during typing.');
-                alert('X Reply Bot: Reply cancelled because the text box was closed.');
+                console.warn('Chatterbox: Editable element was disconnected during typing.');
+                alert('Chatterbox: Reply cancelled because the text box was closed.');
                 return; // Exit gracefully
             }
 
@@ -542,7 +542,7 @@ class XReplyBot {
 
 // Initialize the bot when the page loads
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => new XReplyBot());
+    document.addEventListener('DOMContentLoaded', () => new Chatterbox());
 } else {
-    new XReplyBot();
+    new Chatterbox();
 } 

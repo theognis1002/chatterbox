@@ -1,4 +1,4 @@
-// Background service worker for X Reply Bot
+// Background service worker for Chatterbox
 import { GenerateReplyRequest, GenerateReplyResponse } from './types';
 import { loadDefaultSystemPrompt } from './utils/promptLoader';
 
@@ -31,7 +31,7 @@ class BackgroundService {
             this.defaultSystemPrompt = await loadDefaultSystemPrompt();
             this.setupMessageListener();
         } catch (error) {
-            console.error('X Reply Bot: Failed to initialize background service:', error);
+            console.error('Chatterbox: Failed to initialize background service:', error);
         }
     }
 

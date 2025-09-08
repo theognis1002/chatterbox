@@ -1,14 +1,14 @@
-# Contributing to X Reply Bot
+# Contributing to Chatterbox
 
-Thank you for your interest in contributing to X Reply Bot! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to Chatterbox! This document provides guidelines and instructions for contributing to the project.
 
 ## Development Setup
 
 1. Fork the repository
 2. Clone your fork:
 ```bash
-git clone https://github.com/your-username/twitter-reply-bot.git
-cd twitter-reply-bot
+git clone https://github.com/theognis1002/chatterbox.git
+cd chatterbox
 ```
 3. Install dependencies:
 ```bash
@@ -40,15 +40,18 @@ This will watch for changes and rebuild automatically.
 ## Project Structure
 
 ```
-reply-bot/
+chatterbox/
 ├── src/
-│   ├── background.ts    # Service worker for API calls
-│   ├── content.ts       # Content script for X integration
-│   ├── popup.ts         # Extension popup logic
-│   ├── types.ts         # TypeScript type definitions
-│   ├── utils/          # Utility functions
-│   ├── prompts/        # System prompts
-│   └── styles.css      # Extension styles
+│   ├── background.ts        # Service worker - handles OpenAI API calls
+│   ├── content.ts          # X/Twitter content script
+│   ├── content_linkedin.ts # LinkedIn content script
+│   ├── popup.ts           # Extension popup UI logic
+│   ├── types.ts           # TypeScript definitions & default templates
+│   ├── styles.css         # Extension styling with dark mode support
+│   ├── utils/
+│   │   └── promptLoader.ts # Loads system prompts from files
+│   └── prompts/
+│       └── default-system-prompt.txt # AI behavior instructions
 ├── dist/              # Built files (generated)
 └── ...
 ```
@@ -95,27 +98,34 @@ docs(readme): update installation instructions
 
 ### Templates
 When adding new reply templates:
-1. Add the template definition in `src/types.ts`
-2. Update the UI in `popup.html`
-3. Add any necessary prompt modifications
-4. Document the template in README.md
+1. Add the template definition in `src/types.ts` (DEFAULT_TEMPLATES for X/Twitter)
+2. For LinkedIn templates, update the linkedinTemplates array
+3. Update the UI in `popup.html` for template management
+4. Test template functionality with name placeholder replacement (LinkedIn)
+5. Ensure templates work with the AI prompt system
+6. Document the template behavior
 
 ### API Integration
-When modifying API-related code:
-1. Update error handling in `background.ts`
-2. Test with various API responses
-3. Consider rate limiting
-4. Update relevant documentation
+When modifying OpenAI API-related code:
+1. Update error handling in `background.ts` service worker
+2. Test with various API responses and models (GPT-3.5, GPT-4, etc.)
+3. Consider rate limiting and retry logic
+4. Test message passing between content scripts and background
+5. Verify Chrome storage integration for API keys and settings
+6. Update relevant documentation
 
 ## Testing
 
 Before submitting a PR:
-1. Test the extension on both Twitter and X domains
-2. Test with different tweet types (text, images, threads)
-3. Verify error handling
-4. Check console for errors
-5. Test with and without API key
-6. Verify settings persistence
+1. Test the extension on both X/Twitter and LinkedIn platforms
+2. Test X features: different tweet types (text, images, threads), reply generation, auto-like functionality
+3. Test LinkedIn features: connection request notes, name extraction, template personalization
+4. Verify error handling and retry logic
+5. Check console for errors in both content scripts and background service worker
+6. Test with and without API key
+7. Verify settings persistence across Chrome sync storage
+8. Test template management (add/edit/remove custom templates)
+9. Test advanced settings (temperature, max tokens, typing speed, etc.)
 
 ## Bug Reports
 
