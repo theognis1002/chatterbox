@@ -1,7 +1,7 @@
 // Content script for ChatterBox (LinkedIn)
 // Adds template buttons to the "Add a note" connection modal and post comment areas
 
-import { DEFAULT_TEMPLATES, DEFAULT_LINKEDIN_POST_TEMPLATES, ReplyTemplate } from './types';
+import { DEFAULT_LINKEDIN_TEMPLATES, DEFAULT_LINKEDIN_POST_TEMPLATES, ReplyTemplate, GenerateReplyRequest } from './types';
 
 interface LinkedInTemplate {
     id: string;
@@ -11,22 +11,10 @@ interface LinkedInTemplate {
     icon?: string;
 }
 
-// Default templates – adjust as desired. In the future these could be user-editable via popup.
-const DEFAULT_LINKEDIN_TEMPLATES: LinkedInTemplate[] = [
-    {
-        id: 'greeting1',
-        name: 'Message #1',
-        message: 'Hi {name}, I came across your profile and would love to connect to share insights and opportunities.'
-    },
-    {
-        id: 'greeting2',
-        name: 'Message #2',
-        message: 'Hello {name}! I found your work fascinating and would be happy to connect and keep in touch.'
-    }
-];
+// Note: Connection templates are now loaded from storage
 
 class ChatterBoxLinkedIn {
-    private templates: LinkedInTemplate[] = DEFAULT_LINKEDIN_TEMPLATES;
+    private templates: LinkedInTemplate[] = [];
     private postReplyTemplates: ReplyTemplate[] = DEFAULT_LINKEDIN_POST_TEMPLATES;
     private observer: MutationObserver | null = null;
     private injectedModals = new WeakSet<HTMLTextAreaElement>();
@@ -46,14 +34,14 @@ class ChatterBoxLinkedIn {
         }
 
         try {
-            // Load custom LinkedIn templates stored under a dedicated key.
-            const result = await chrome.storage.sync.get(['linkedinTemplates', 'linkedinPostTemplates']);
+            // Load LinkedIn-specific settings from storage
+            const result = await chrome.storage.sync.get(['linkedinSettings', 'linkedinTemplates']);
             if (result.linkedinTemplates && Array.isArray(result.linkedinTemplates)) {
                 this.templates = result.linkedinTemplates;
             }
-            // Load LinkedIn post reply templates
-            if (result.linkedinPostTemplates && Array.isArray(result.linkedinPostTemplates)) {
-                this.postReplyTemplates = result.linkedinPostTemplates;
+            // Load LinkedIn post reply templates from settings
+            if (result.linkedinSettings?.templates && Array.isArray(result.linkedinSettings.templates)) {
+                this.postReplyTemplates = result.linkedinSettings.templates;
             }
         } catch (error) {
             console.error('ChatterBox LinkedIn: Failed to load templates from storage:', error);
@@ -547,9 +535,10 @@ class ChatterBoxLinkedIn {
             console.log('ChatterBox LinkedIn: Generating reply for post:', postContext.content.substring(0, 100) + '...');
 
             // Send request to background script
-            const request = {
-                tweetContent: postContext.content, // Using same interface as X for now
-                template
+            const request: GenerateReplyRequest = {
+                tweetContent: postContext.content,
+                template,
+                platform: 'linkedin'
             };
 
             const response = await this.sendMessageWithRetry({

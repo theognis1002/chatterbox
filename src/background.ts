@@ -1,6 +1,6 @@
 // Background service worker for ChatterBox
 import { GenerateReplyRequest, GenerateReplyResponse } from './types';
-import { loadDefaultSystemPrompt } from './utils/promptLoader';
+import { loadXSystemPrompt, loadLinkedInSystemPrompt } from './utils/promptLoader';
 
 interface AdvancedSettings {
     temperature: number;
@@ -8,20 +8,6 @@ interface AdvancedSettings {
     presencePenalty: number;
     frequencyPenalty: number;
     typingSpeed: number;
-    casualReplies: boolean;
-}
-
-interface ApiProvider {
-    type: 'openai' | 'openrouter';
-    apiKey: string;
-}
-
-interface ModelInfo {
-    requiresMaxCompletionTokens: boolean;
-    supportsReasoning: boolean;
-    provider: string;
-    supportsTemperature: boolean;
-    supportsPenalties: boolean;
 }
 
 const DEFAULT_SETTINGS: AdvancedSettings = {
@@ -29,29 +15,12 @@ const DEFAULT_SETTINGS: AdvancedSettings = {
     maxTokens: 50,
     presencePenalty: 0.6,
     frequencyPenalty: 0.3,
-    typingSpeed: 5,
-    casualReplies: false
-};
-
-// Extended model configuration for OpenRouter compatibility
-const MODEL_CONFIG: { [key: string]: ModelInfo } = {
-    // OpenRouter models - all use max_tokens as OpenRouter normalizes parameters
-    'openai/gpt-5': { requiresMaxCompletionTokens: false, supportsReasoning: true, provider: 'openrouter', supportsTemperature: false, supportsPenalties: false },
-    'openai/gpt-4.1': { requiresMaxCompletionTokens: false, supportsReasoning: false, provider: 'openrouter', supportsTemperature: true, supportsPenalties: true },
-    'openai/gpt-4o': { requiresMaxCompletionTokens: false, supportsReasoning: false, provider: 'openrouter', supportsTemperature: true, supportsPenalties: true },
-    'openai/gpt-4o-mini': { requiresMaxCompletionTokens: false, supportsReasoning: false, provider: 'openrouter', supportsTemperature: true, supportsPenalties: true },
-    'openai/gpt-4-turbo': { requiresMaxCompletionTokens: false, supportsReasoning: false, provider: 'openrouter', supportsTemperature: true, supportsPenalties: true },
-    'openai/gpt-3.5-turbo': { requiresMaxCompletionTokens: false, supportsReasoning: false, provider: 'openrouter', supportsTemperature: true, supportsPenalties: true },
-    'anthropic/claude-3.5-sonnet': { requiresMaxCompletionTokens: false, supportsReasoning: false, provider: 'openrouter', supportsTemperature: true, supportsPenalties: false },
-    'anthropic/claude-3-haiku': { requiresMaxCompletionTokens: false, supportsReasoning: false, provider: 'openrouter', supportsTemperature: true, supportsPenalties: false },
-    'google/gemini-pro': { requiresMaxCompletionTokens: false, supportsReasoning: false, provider: 'openrouter', supportsTemperature: true, supportsPenalties: false },
-    'meta-llama/llama-3.1-405b': { requiresMaxCompletionTokens: false, supportsReasoning: false, provider: 'openrouter', supportsTemperature: true, supportsPenalties: true },
-    'meta-llama/llama-3.1-70b': { requiresMaxCompletionTokens: false, supportsReasoning: false, provider: 'openrouter', supportsTemperature: true, supportsPenalties: true },
-    'mistralai/mixtral-8x7b': { requiresMaxCompletionTokens: false, supportsReasoning: false, provider: 'openrouter', supportsTemperature: true, supportsPenalties: false }
+    typingSpeed: 5
 };
 
 class BackgroundService {
-    private defaultSystemPrompt: string = 'Loading...';
+    private defaultXSystemPrompt: string = 'Loading...';
+    private defaultLinkedInSystemPrompt: string = 'Loading...';
 
     constructor() {
         this.init();
@@ -59,8 +28,9 @@ class BackgroundService {
 
     private async init() {
         try {
-            // Load the default prompt
-            this.defaultSystemPrompt = await loadDefaultSystemPrompt();
+            // Load the default prompts for both platforms
+            this.defaultXSystemPrompt = await loadXSystemPrompt();
+            this.defaultLinkedInSystemPrompt = await loadLinkedInSystemPrompt();
             this.setupMessageListener();
         } catch (error) {
             console.error('ChatterBox: Failed to initialize background service:', error);
@@ -90,22 +60,15 @@ class BackgroundService {
         sendResponse: (response: GenerateReplyResponse) => void
     ) {
         try {
-            // Get settings from storage
-            const { 
-                openrouterApiKey, 
-                model, 
-                systemPrompt, 
-                advancedSettings 
-            } = await chrome.storage.sync.get([
-                'openrouterApiKey', 
-                'model', 
-                'systemPrompt', 
-                'advancedSettings'
-            ]);
-
-            const selectedModel = model || 'openai/gpt-4.1';
+            // Get platform-specific settings from storage
+            const platform = request.platform || 'x';
+            const storageKeys = platform === 'linkedin' 
+                ? ['openrouterApiKey', 'model', 'linkedinSettings']
+                : ['openrouterApiKey', 'model', 'xSettings'];
             
-            // Validate OpenRouter API key
+            const result = await chrome.storage.sync.get(storageKeys);
+            const { openrouterApiKey, model } = result;
+
             if (!openrouterApiKey) {
                 sendResponse({
                     reply: '',
@@ -114,24 +77,26 @@ class BackgroundService {
                 return;
             }
 
-            // Validate model selection
-            if (!selectedModel) {
-                sendResponse({
-                    reply: '',
-                    error: 'No model selected. Please choose a model from the extension popup.'
-                });
-                return;
+            // Get platform-specific settings
+            let systemPrompt: string;
+            let advancedSettings: AdvancedSettings;
+            
+            if (platform === 'linkedin') {
+                const linkedinSettings = result.linkedinSettings || {};
+                systemPrompt = linkedinSettings.systemPrompt || this.defaultLinkedInSystemPrompt;
+                advancedSettings = linkedinSettings.advancedSettings || { ...DEFAULT_SETTINGS, maxTokens: 60 };
+            } else {
+                const xSettings = result.xSettings || {};
+                systemPrompt = xSettings.systemPrompt || this.defaultXSystemPrompt;
+                advancedSettings = xSettings.advancedSettings || DEFAULT_SETTINGS;
             }
 
-            console.log('ChatterBox: Using model:', selectedModel);
-
             // Generate the reply using OpenRouter
-            const reply = await this.callLLMAPI(
+            const reply = await this.callOpenRouter(
                 openrouterApiKey,
-                'openrouter',
-                selectedModel,
-                systemPrompt || this.defaultSystemPrompt,
-                advancedSettings || DEFAULT_SETTINGS,
+                model || 'openai/gpt-4.1',
+                systemPrompt,
+                advancedSettings,
                 request
             );
 
@@ -145,9 +110,8 @@ class BackgroundService {
         }
     }
 
-    private async callLLMAPI(
+    private async callOpenRouter(
         apiKey: string,
-        provider: string,
         model: string,
         systemPrompt: string,
         settings: AdvancedSettings,
@@ -155,7 +119,7 @@ class BackgroundService {
     ): Promise<string> {
         const { tweetContent, template } = request;
 
-        const finalSystemPrompt = `${systemPrompt} ${template.prompt}`;
+        const finalSystemPrompt = `${systemPrompt}\n\n${template.prompt}`;
 
         if (tweetContent) {
             var userPrompt = `Generate a reply to this post: "${tweetContent}"`;
@@ -163,90 +127,31 @@ class BackgroundService {
             var userPrompt = `Create a post"`;
         }
 
-        // Determine API endpoint and headers based on provider
-        let apiEndpoint: string;
-        let headers: { [key: string]: string };
-
-        if (provider === 'openrouter') {
-            apiEndpoint = 'https://openrouter.ai/api/v1/chat/completions';
-            headers = {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-                'HTTP-Referer': 'https://github.com/your-username/chatterbox', // Optional
-                'X-Title': 'ChatterBox Extension' // Optional
-            };
-        } else {
-            // Default to OpenAI
-            apiEndpoint = 'https://api.openai.com/v1/chat/completions';
-            headers = {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            };
-        }
-
-        // Get model configuration with fallback
-        const modelInfo = MODEL_CONFIG[model] || { 
-            requiresMaxCompletionTokens: false, 
-            supportsReasoning: false, 
-            provider: 'openrouter',
-            supportsTemperature: true,
-            supportsPenalties: true
-        };
-
-        // Build request body with core parameters
-        const requestBody: any = {
-            model: model,
-            messages: [
-                { role: 'system', content: finalSystemPrompt },
-                { role: 'user', content: userPrompt }
-            ]
-        };
-
-        // Add temperature if supported
-        if (modelInfo.supportsTemperature) {
-            requestBody.temperature = settings.temperature;
-        }
-
-        // Add penalty parameters if supported
-        if (modelInfo.supportsPenalties) {
-            requestBody.presence_penalty = settings.presencePenalty;
-            requestBody.frequency_penalty = settings.frequencyPenalty;
-        }
-
-        // Use appropriate token limit parameter
-        if (modelInfo.requiresMaxCompletionTokens && provider === 'openai') {
-            requestBody.max_completion_tokens = settings.maxTokens;
-        } else {
-            requestBody.max_tokens = settings.maxTokens;
-        }
-
-        console.log('ChatterBox: Making API request with body:', JSON.stringify(requestBody, null, 2));
-
         try {
-            const response = await fetch(apiEndpoint, {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
-                headers: headers,
-                body: JSON.stringify(requestBody)
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                    'HTTP-Referer': 'https://chatterbox.extension',
+                    'X-Title': 'ChatterBox Extension'
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: [
+                        { role: 'system', content: finalSystemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    max_tokens: settings.maxTokens,
+                    temperature: settings.temperature,
+                    presence_penalty: settings.presencePenalty,
+                    frequency_penalty: settings.frequencyPenalty
+                })
             });
 
             if (!response.ok) {
                 const error = await response.json().catch(() => ({ error: { message: 'Unknown API error' } }));
-                const providerName = provider === 'openrouter' ? 'OpenRouter' : 'OpenAI';
-                
-                // Log detailed error for debugging
-                console.error('ChatterBox API Error:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    model: model,
-                    error: error
-                });
-                
-                // Check for specific model ID errors
-                if (error.error?.message?.includes('invalid model ID')) {
-                    throw new Error(`Model '${model}' is not valid for OpenRouter. Please check available models or contact support.`);
-                }
-                
-                throw new Error(error.error?.message || `${providerName} API request failed (${response.status})`);
+                throw new Error(error.error?.message || 'OpenRouter API request failed');
             }
 
             const data = await response.json();
@@ -256,39 +161,25 @@ class BackgroundService {
                 throw new Error('No reply content generated');
             }
 
-            return this.formatReplyContent(replyContent, settings);
+            return this.formatReplyContent(replyContent);
         } catch (error) {
             if (error instanceof Error) {
                 throw error;
             }
-            const providerName = provider === 'openrouter' ? 'OpenRouter' : 'OpenAI';
-            throw new Error(`Failed to call ${providerName} API`);
+            throw new Error('Failed to call OpenRouter API');
         }
     }
 
-    private formatReplyContent(content: string, settings: AdvancedSettings): string {
+    private formatReplyContent(content: string): string {
         let formattedContent = content;
 
-        // Only apply casual formatting if the toggle is enabled
-        if (settings.casualReplies) {
-            // Remove surrounding quotes if they exist
-            if (formattedContent.startsWith('"') && formattedContent.endsWith('"')) {
-                formattedContent = formattedContent.slice(1, -1);
-            }
-
-            // Remove trailing period if it exists
-            if (formattedContent.endsWith('.')) {
-                formattedContent = formattedContent.slice(0, -1);
-            }
-
-            // Add more formatting rules here as needed
-            // Example future rules:
-            // - Convert to lowercase
-            // - Remove multiple spaces
-            // - Trim hashtags
-            // - Remove emojis
-            // - Character count validation
-        }
+        // Add formatting rules here as needed
+        // Example future rules:
+        // - Convert to lowercase
+        // - Remove multiple spaces
+        // - Trim hashtags
+        // - Remove emojis
+        // - Character count validation
 
         return formattedContent;
     }

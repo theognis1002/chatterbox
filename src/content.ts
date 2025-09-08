@@ -1,8 +1,8 @@
-// Content script for ChatterBox
-import { DEFAULT_TEMPLATES, GenerateReplyRequest, GenerateReplyResponse, ReplyTemplate } from './types';
+// Content script for ChatterBox (X/Twitter)
+import { DEFAULT_X_TEMPLATES, GenerateReplyRequest, GenerateReplyResponse, ReplyTemplate, PlatformSettings } from './types';
 
 class ChatterBox {
-    private templates: ReplyTemplate[] = DEFAULT_TEMPLATES;
+    private templates: ReplyTemplate[] = DEFAULT_X_TEMPLATES;
     private buttonsInjected = new WeakSet<HTMLElement>();
     private observer: MutationObserver | null = null;
 
@@ -11,10 +11,10 @@ class ChatterBox {
     }
 
     private async init() {
-        // Load custom templates from storage
-        const result = await chrome.storage.sync.get(['templates']);
-        if (result.templates) {
-            this.templates = result.templates;
+        // Load X-specific settings from storage
+        const result = await chrome.storage.sync.get(['xSettings']);
+        if (result.xSettings?.templates) {
+            this.templates = result.xSettings.templates;
         }
 
         // Listen for focus events on the page
@@ -306,7 +306,8 @@ class ChatterBox {
             // Send request to background script
             const request: GenerateReplyRequest = {
                 tweetContent,
-                template
+                template,
+                platform: 'x'
             };
 
             let response: GenerateReplyResponse;

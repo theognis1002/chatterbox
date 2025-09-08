@@ -10,7 +10,7 @@
   <div class="popup-container">
     <div class="popup-header">
       <h1>
-        <span class="logo"><img src="icons/icon48.png" alt="X Reply Bot Icon" width="48" height="48"></span>
+        <span class="logo"><img src="icons/icon48.png" alt="ChatterBox Icon" width="48" height="48"></span>
         ChatterBox
       </h1>
     </div>
@@ -18,9 +18,11 @@
     <div class="tab-container">
       <div class="tab-buttons">
         <button id="generalTab" class="tab-button active">General</button>
-        <button id="templatesTab" class="tab-button">Templates</button>
+        <button id="xSettingsTab" class="tab-button">X/Twitter</button>
+        <button id="linkedinSettingsTab" class="tab-button">LinkedIn</button>
       </div>
 
+      <!-- General Tab -->
       <div id="generalContent" class="tab-content active">
         <div class="api-key-section">
           <label for="openrouterApiKey">OpenRouter API Key:</label>
@@ -35,7 +37,7 @@
         </div>
 
         <div class="model-section">
-          <label for="modelSelect" id="modelLabel">AI Model:</label>
+          <label for="modelSelect" id="modelLabel">LLM Model:</label>
           <select id="modelSelect" class="model-select">
             <option value="openai/gpt-4.1" selected>GPT-4.1</option>
             <option value="openai/gpt-5">GPT-5</option>
@@ -53,49 +55,71 @@
           <div id="modelDescription" class="model-description"></div>
         </div>
 
+        <div class="github-section">
+          <div class="github-link">
+            <a href="https://github.com/theognis1002/chatterbox" target="_blank" class="github-button">
+              <svg class="github-icon" viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor" d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+              </svg>
+              Star on GitHub
+            </a>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <h2>Quick Start:</h2>
+          <p>1. Get an <a href="https://openrouter.ai/keys" target="_blank">OpenRouter API key</a></p>
+          <p>2. Select your preferred LLM model</p>
+          <p>3. Configure platform settings</p>
+          <p>4. Use template buttons to generate replies on X or LinkedIn</p>
+        </div>
+      </div>
+
+      <!-- X Settings Tab -->
+      <div id="xSettingsContent" class="tab-content">
         <div class="prompt-section">
-          <label for="systemPrompt">System Prompt:</label>
+          <label for="xSystemPrompt">X System Prompt:</label>
           <textarea 
-            id="systemPrompt" 
+            id="xSystemPrompt" 
             class="system-prompt-input" 
             rows="4" 
-            placeholder="Enter custom system prompt..."
+            placeholder="System prompt for X replies..."
           ></textarea>
-          <button id="resetPromptButton" class="reset-button">Reset to Default</button>
+          <button id="resetXPromptButton" class="reset-button">Reset to Default</button>
         </div>
 
         <div class="advanced-settings">
-          <button class="advanced-toggle" id="advancedToggle">
+          <button class="advanced-toggle" id="xAdvancedToggle">
             <span class="toggle-icon">▶</span> Advanced Settings
           </button>
           
-          <div class="advanced-content" id="advancedContent" style="display: none;">
+          <div class="advanced-content" id="xAdvancedContent" style="display: none;">
             <div class="setting-item">
-              <label for="temperature">Temperature:</label>
+              <label for="xTemperature">Temperature:</label>
               <div class="setting-control">
                 <input 
                   type="range" 
-                  id="temperature" 
+                  id="xTemperature" 
                   min="0" 
                   max="2" 
                   step="0.1" 
-                  value="0.7"
+                  value="0.5"
                   class="slider"
                 />
-                <span class="setting-value" id="temperatureValue">0.7</span>
+                <span class="setting-value" id="xTemperatureValue">0.5</span>
               </div>
               <small class="setting-description">Higher values make output more random, lower values more focused.</small>
             </div>
 
             <div class="setting-item">
-              <label for="maxTokens">Max Tokens:</label>
+              <label for="xMaxTokens">Max Tokens:</label>
               <div class="setting-control">
                 <input 
                   type="number" 
-                  id="maxTokens" 
+                  id="xMaxTokens" 
                   min="1" 
                   max="2000" 
-                  value="50"
+                  value="40"
                   class="number-input"
                 />
               </div>
@@ -103,147 +127,193 @@
             </div>
 
             <div class="setting-item">
-              <label for="presencePenalty">Presence Penalty:</label>
+              <label for="xPresencePenalty">Presence Penalty:</label>
               <div class="setting-control">
                 <input 
                   type="range" 
-                  id="presencePenalty" 
+                  id="xPresencePenalty" 
                   min="-2" 
                   max="2" 
                   step="0.1" 
                   value="0.6"
                   class="slider"
                 />
-                <span class="setting-value" id="presencePenaltyValue">0.6</span>
+                <span class="setting-value" id="xPresencePenaltyValue">0.6</span>
               </div>
               <small class="setting-description">Higher values increase the model's likelihood to talk about new topics.</small>
             </div>
 
             <div class="setting-item">
-              <label for="frequencyPenalty">Frequency Penalty:</label>
+              <label for="xFrequencyPenalty">Frequency Penalty:</label>
               <div class="setting-control">
                 <input 
                   type="range" 
-                  id="frequencyPenalty" 
+                  id="xFrequencyPenalty" 
                   min="-2" 
                   max="2" 
                   step="0.1" 
                   value="0.3"
                   class="slider"
                 />
-                <span class="setting-value" id="frequencyPenaltyValue">0.3</span>
+                <span class="setting-value" id="xFrequencyPenaltyValue">0.3</span>
               </div>
               <small class="setting-description">Higher values decrease the model's likelihood to repeat itself.</small>
             </div>
 
             <div class="setting-item">
-              <label for="typingSpeed">Typing Speed (ms):</label>
+              <label for="xTypingSpeed">Typing Speed (ms):</label>
               <div class="setting-control">
                 <input 
                   type="range" 
-                  id="typingSpeed" 
+                  id="xTypingSpeed" 
                   min="0" 
                   max="100" 
                   step="5" 
                   value="5"
                   class="slider"
                 />
-                <span class="setting-value" id="typingSpeedValue">5</span>
+                <span class="setting-value" id="xTypingSpeedValue">5</span>
               </div>
               <small class="setting-description">Delay between characters. Higher values make typing appear more human-like.</small>
             </div>
 
+            <button id="resetXAdvancedButton" class="reset-button">Reset to Defaults</button>
+          </div>
+        </div>
+
+        <div class="templates-section">
+          <h3>X Reply Templates</h3>
+          <div class="templates-list" id="xTemplatesList"></div>
+          <button id="addXTemplateButton" class="add-button">Add Template</button>
+          <button id="resetXTemplatesButton" class="reset-button">Reset to Defaults</button>
+        </div>
+      </div>
+
+      <!-- LinkedIn Settings Tab -->
+      <div id="linkedinSettingsContent" class="tab-content">
+        <div class="prompt-section">
+          <label for="linkedinSystemPrompt">LinkedIn System Prompt:</label>
+          <textarea 
+            id="linkedinSystemPrompt" 
+            class="system-prompt-input" 
+            rows="4" 
+            placeholder="System prompt for LinkedIn replies..."
+          ></textarea>
+          <button id="resetLinkedInPromptButton" class="reset-button">Reset to Default</button>
+        </div>
+
+        <div class="advanced-settings">
+          <button class="advanced-toggle" id="linkedinAdvancedToggle">
+            <span class="toggle-icon">▶</span> Advanced Settings
+          </button>
+          
+          <div class="advanced-content" id="linkedinAdvancedContent" style="display: none;">
             <div class="setting-item">
-              <label for="casualReplies">Make replies casual:</label>
+              <label for="linkedinTemperature">Temperature:</label>
               <div class="setting-control">
                 <input 
-                  type="checkbox" 
-                  id="casualReplies" 
-                  class="checkbox-input"
+                  type="range" 
+                  id="linkedinTemperature" 
+                  min="0" 
+                  max="2" 
+                  step="0.1" 
+                  value="0.5"
+                  class="slider"
+                />
+                <span class="setting-value" id="linkedinTemperatureValue">0.5</span>
+              </div>
+              <small class="setting-description">Higher values make output more random, lower values more focused.</small>
+            </div>
+
+            <div class="setting-item">
+              <label for="linkedinMaxTokens">Max Tokens:</label>
+              <div class="setting-control">
+                <input 
+                  type="number" 
+                  id="linkedinMaxTokens" 
+                  min="1" 
+                  max="2000" 
+                  value="60"
+                  class="number-input"
                 />
               </div>
-              <small class="setting-description">Removes quotes and trailing periods to make replies sound more natural.</small>
+              <small class="setting-description">Maximum length of generated responses.</small>
             </div>
 
-            <button id="resetAdvancedButton" class="reset-button">Reset to Defaults</button>
+            <div class="setting-item">
+              <label for="linkedinPresencePenalty">Presence Penalty:</label>
+              <div class="setting-control">
+                <input 
+                  type="range" 
+                  id="linkedinPresencePenalty" 
+                  min="-2" 
+                  max="2" 
+                  step="0.1" 
+                  value="0.6"
+                  class="slider"
+                />
+                <span class="setting-value" id="linkedinPresencePenaltyValue">0.6</span>
+              </div>
+              <small class="setting-description">Higher values increase the model's likelihood to talk about new topics.</small>
+            </div>
+
+            <div class="setting-item">
+              <label for="linkedinFrequencyPenalty">Frequency Penalty:</label>
+              <div class="setting-control">
+                <input 
+                  type="range" 
+                  id="linkedinFrequencyPenalty" 
+                  min="-2" 
+                  max="2" 
+                  step="0.1" 
+                  value="0.3"
+                  class="slider"
+                />
+                <span class="setting-value" id="linkedinFrequencyPenaltyValue">0.3</span>
+              </div>
+              <small class="setting-description">Higher values decrease the model's likelihood to repeat itself.</small>
+            </div>
+
+            <div class="setting-item">
+              <label for="linkedinTypingSpeed">Typing Speed (ms):</label>
+              <div class="setting-control">
+                <input 
+                  type="range" 
+                  id="linkedinTypingSpeed" 
+                  min="0" 
+                  max="100" 
+                  step="5" 
+                  value="5"
+                  class="slider"
+                />
+                <span class="setting-value" id="linkedinTypingSpeedValue">5</span>
+              </div>
+              <small class="setting-description">Delay between characters. Higher values make typing appear more human-like.</small>
+            </div>
+
+            <button id="resetLinkedInAdvancedButton" class="reset-button">Reset to Defaults</button>
+          </div>
+        </div>
+
+        <div class="templates-section">
+          <div class="template-subsection">
+            <h3>Connection Templates</h3>
+            <div class="templates-list" id="linkedinConnectionTemplatesList"></div>
+            <button id="addLinkedInConnectionTemplateButton" class="add-button">Add Connection Template</button>
+            <button id="resetLinkedInConnectionTemplatesButton" class="reset-button">Reset to Defaults</button>
+          </div>
+
+          <div class="template-subsection">
+            <h3>Post Reply Templates</h3>
+            <div class="templates-list" id="linkedinPostTemplatesList"></div>
+            <button id="addLinkedInPostTemplateButton" class="add-button">Add Post Template</button>
+            <button id="resetLinkedInPostTemplatesButton" class="reset-button">Reset to Defaults</button>
           </div>
         </div>
       </div>
-
-      <div id="templatesContent" class="tab-content">
-        <!-- X Replies Templates Card -->
-        <div class="template-card">
-          <div class="template-card-header" id="xTemplatesHeader">
-            <div class="template-card-title">
-              <span class="template-card-icon">𝕏</span>
-              <h3>X Replies</h3>
-            </div>
-            <span class="toggle-icon" id="xTemplatesToggle">▶</span>
-          </div>
-          <div class="template-card-content collapsed" id="xTemplatesContent">
-            <div class="templates-section">
-              <div class="templates-list" id="templatesXList"></div>
-              <button id="addXTemplateButton" class="add-button">Add Template</button>
-              <button id="resetXTemplatesButton" class="reset-button">Reset to Defaults</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- LinkedIn Connect Templates Card -->
-        <div class="template-card">
-          <div class="template-card-header" id="linkedinTemplatesHeader">
-            <div class="template-card-title">
-              <span class="template-card-icon">💼</span>
-              <h3>LinkedIn Connect</h3>
-            </div>
-            <span class="toggle-icon" id="linkedinTemplatesToggle">▶</span>
-          </div>
-          <div class="template-card-content collapsed" id="linkedinTemplatesContent">
-            <div class="templates-section">
-              <div class="templates-list" id="templatesLinkedInList"></div>
-              <button id="addLinkedInTemplateButton" class="add-button">Add Message</button>
-              <button id="resetLinkedInTemplatesButton" class="reset-button">Reset to Defaults</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- LinkedIn Posts Templates Card -->
-        <div class="template-card">
-          <div class="template-card-header" id="linkedinPostTemplatesHeader">
-            <div class="template-card-title">
-              <span class="template-card-icon">📝</span>
-              <h3>LinkedIn Posts</h3>
-            </div>
-            <span class="toggle-icon" id="linkedinPostTemplatesToggle">▶</span>
-          </div>
-          <div class="template-card-content collapsed" id="linkedinPostTemplatesContent">
-            <div class="templates-section">
-              <div class="templates-list" id="templatesLinkedInPostList"></div>
-              <button id="addLinkedInPostTemplateButton" class="add-button">Add Template</button>
-              <button id="resetLinkedInPostTemplatesButton" class="reset-button">Reset to Defaults</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="info-section">
-      <h2>How to use:</h2>
-      <p>1. Enter your OpenRouter API key above</p>
-      <p>2. Choose from 300+ AI models (GPT-5, Claude 4, Gemini, Llama, etc.)</p>
-      <p>3. Go to X/Twitter or LinkedIn and reply to posts</p>
-      <p>4. Select a template button to generate AI-powered replies</p>
-      <p>5. Edit the generated reply as needed</p>
-      
-      <h2>Get an OpenRouter API key:</h2>
-      <p>
-        Visit <a href="https://openrouter.ai/keys" target="_blank">OpenRouter</a> 
-        to create your API key. OpenRouter provides access to 300+ AI models 
-        from OpenAI, Anthropic, Google, Meta, and more.
-      </p>
     </div>
   </div>
 
   <script src="popup.js"></script>
 </body>
-</html> 
+</html>

@@ -11,6 +11,7 @@ export interface GenerateReplyRequest {
     tweetContent: string;
     template: ReplyTemplate;
     context?: string;
+    platform?: 'x' | 'linkedin';
 }
 
 export interface GenerateReplyResponse {
@@ -19,11 +20,13 @@ export interface GenerateReplyResponse {
 }
 
 export interface StorageData {
-    apiKey?: string;
     openrouterApiKey?: string;
-    provider?: 'openai' | 'openrouter';
     templates?: ReplyTemplate[];
     model?: string;
+    xSettings?: PlatformSettings;
+    linkedinSettings?: PlatformSettings;
+    linkedinTemplates?: ReplyTemplate[];
+    linkedinPostTemplates?: ReplyTemplate[];
 }
 
 export interface AdvancedSettings {
@@ -32,6 +35,12 @@ export interface AdvancedSettings {
     presencePenalty: number;
     frequencyPenalty: number;
     typingSpeed: number;
+}
+
+export interface PlatformSettings {
+    systemPrompt: string;
+    advancedSettings: AdvancedSettings;
+    templates: ReplyTemplate[];
 }
 
 export interface ModelOption {
@@ -44,6 +53,40 @@ export interface ModelOption {
         completion: number;
     };
 }
+
+// Default LinkedIn connection templates
+export const DEFAULT_LINKEDIN_TEMPLATES: ReplyTemplate[] = [
+    {
+        id: 'generic',
+        name: 'Generic Connect',
+        prompt: 'Hi {name}, I\'d love to connect with you!',
+        icon: '👋'
+    },
+    {
+        id: 'professional',
+        name: 'Professional',
+        prompt: 'Hi {name}, I came across your profile and would love to connect. Your experience in the industry is impressive!',
+        icon: '💼'
+    },
+    {
+        id: 'mutual',
+        name: 'Mutual Interest',
+        prompt: 'Hi {name}, we seem to share similar professional interests. Would love to connect and exchange insights!',
+        icon: '🤝'
+    },
+    {
+        id: 'event',
+        name: 'Event Follow-up',
+        prompt: 'Hi {name}, great meeting you at the recent event! Would love to stay connected.',
+        icon: '🎯'
+    },
+    {
+        id: 'industry',
+        name: 'Industry Connection',
+        prompt: 'Hi {name}, I\'m also working in the same industry and would love to connect with fellow professionals!',
+        icon: '🏢'
+    }
+];
 
 export const DEFAULT_LINKEDIN_POST_TEMPLATES: ReplyTemplate[] = [
     {
@@ -108,7 +151,8 @@ export const DEFAULT_LINKEDIN_POST_TEMPLATES: ReplyTemplate[] = [
     }
 ];
 
-export const DEFAULT_TEMPLATES: ReplyTemplate[] = [
+// Default X/Twitter reply templates
+export const DEFAULT_X_TEMPLATES: ReplyTemplate[] = [
     {
         id: 'question',
         name: 'Question',
@@ -171,19 +215,28 @@ export const DEFAULT_TEMPLATES: ReplyTemplate[] = [
     }
 ];
 
-// Model definitions for the extension
-export const OPENAI_MODELS: ModelOption[] = [
-    { id: 'gpt-5', name: 'GPT-5', provider: 'openai', description: 'Latest OpenAI reasoning model' },
-    { id: 'gpt-4o', name: 'GPT-4o', provider: 'openai', description: 'Most capable GPT-4 model' },
-    { id: 'gpt-4', name: 'GPT-4', provider: 'openai', description: 'High-quality responses' },
-    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', provider: 'openai', description: 'Fast and capable' },
-    { id: 'gpt-4.1', name: 'GPT-4.1', provider: 'openai', description: 'Enhanced GPT-4' },
-    { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', provider: 'openai', description: 'Lightweight GPT-4.1' },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', provider: 'openai', description: 'Fast and cost-effective' },
-    { id: 'o1', name: 'o1', provider: 'openai', description: 'Advanced reasoning model' },
-    { id: 'o1-mini', name: 'o1 Mini', provider: 'openai', description: 'Lightweight reasoning' },
-];
+// Default advanced settings
+export const DEFAULT_ADVANCED_SETTINGS: AdvancedSettings = {
+    temperature: 0.5,
+    maxTokens: 50,
+    presencePenalty: 0.6,
+    frequencyPenalty: 0.3,
+    typingSpeed: 5
+};
 
+// Default platform settings
+export const DEFAULT_X_SETTINGS: Omit<PlatformSettings, 'systemPrompt'> = {
+    advancedSettings: DEFAULT_ADVANCED_SETTINGS,
+    templates: DEFAULT_X_TEMPLATES
+};
+
+export const DEFAULT_LINKEDIN_SETTINGS: Omit<PlatformSettings, 'systemPrompt'> = {
+    advancedSettings: DEFAULT_ADVANCED_SETTINGS,
+    templates: DEFAULT_LINKEDIN_POST_TEMPLATES
+};
+
+
+// Model definitions for the extension via OpenRouter
 export const OPENROUTER_MODELS: ModelOption[] = [
     // OpenAI models via OpenRouter
     { id: 'openai/gpt-5', name: 'GPT-5 (OpenRouter)', provider: 'openrouter', description: 'Latest OpenAI reasoning model via OpenRouter' },
@@ -191,26 +244,26 @@ export const OPENROUTER_MODELS: ModelOption[] = [
     { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini (OpenRouter)', provider: 'openrouter', description: 'Smaller GPT-4o via OpenRouter' },
     { id: 'openai/gpt-4-turbo', name: 'GPT-4 Turbo (OpenRouter)', provider: 'openrouter', description: 'GPT-4 Turbo via OpenRouter' },
     { id: 'openai/gpt-3.5-turbo', name: 'GPT-3.5 Turbo (OpenRouter)', provider: 'openrouter', description: 'GPT-3.5 Turbo via OpenRouter' },
-    
+
     // Anthropic models
     { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'openrouter', description: 'Advanced Claude model' },
     { id: 'anthropic/claude-3-haiku', name: 'Claude 3 Haiku', provider: 'openrouter', description: 'Fast Claude model' },
     { id: 'anthropic/claude-4', name: 'Claude 4', provider: 'openrouter', description: 'Latest Claude with reasoning' },
-    
+
     // Google models
     { id: 'google/gemini-pro', name: 'Gemini Pro', provider: 'openrouter', description: 'Google\'s flagship model' },
     { id: 'google/gemini-pro-1.5', name: 'Gemini Pro 1.5', provider: 'openrouter', description: 'Enhanced Gemini Pro' },
-    
+
     // Meta models
     { id: 'meta-llama/llama-3.1-405b', name: 'Llama 3.1 405B', provider: 'openrouter', description: 'Large Llama model' },
     { id: 'meta-llama/llama-3.1-70b', name: 'Llama 3.1 70B', provider: 'openrouter', description: 'Balanced Llama model' },
     { id: 'meta-llama/llama-3.1-8b', name: 'Llama 3.1 8B', provider: 'openrouter', description: 'Fast Llama model' },
-    
+
     // Other popular models
     { id: 'perplexity/llama-3.1-sonar-huge-128k-online', name: 'Perplexity Sonar Huge', provider: 'openrouter', description: 'Perplexity\'s large model with web search' },
     { id: 'mistralai/mixtral-8x7b', name: 'Mixtral 8x7B', provider: 'openrouter', description: 'Mistral\'s mixture of experts' },
     { id: 'deepseek/deepseek-chat', name: 'DeepSeek Chat', provider: 'openrouter', description: 'DeepSeek\'s chat model' }
 ];
 
-// Combined model list for easier access
-export const ALL_MODELS: ModelOption[] = [...OPENAI_MODELS, ...OPENROUTER_MODELS]; 
+// All available models (OpenRouter only)
+export const ALL_MODELS: ModelOption[] = OPENROUTER_MODELS; 

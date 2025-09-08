@@ -9,9 +9,7 @@
         "zip": "cd dist && zip -r ../chatterbox.zip . && cd ..",
         "package": "npm run clean && npm run build && npm run zip"
     },
-    "dependencies": {
-        "openai": "^4.20.0"
-    },
+    "dependencies": {},
     "devDependencies": {
         "@types/chrome": "^0.0.251",
         "@types/node": "^20.9.0",

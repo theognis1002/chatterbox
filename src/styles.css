@@ -633,4 +633,28 @@
 
 .add-button:hover {
   background: rgba(29, 161, 242, 0.1);
+}
+
+/* GitHub button styles */
+.github-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  background-color: #1d9bf0;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.github-button:hover {
+  background-color: #1a8cd8;
+  text-decoration: none;
+}
+
+.github-icon {
+  color: white;
 } 

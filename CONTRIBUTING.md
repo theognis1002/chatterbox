@@ -37,25 +37,6 @@ This will watch for changes and rebuild automatically.
 4. Test thoroughly
 5. Commit your changes with a descriptive message
 
-## Project Structure
-
-```
-chatterbox/
-├── src/
-│   ├── background.ts        # Service worker - handles OpenAI API calls
-│   ├── content.ts          # X/Twitter content script
-│   ├── content_linkedin.ts # LinkedIn content script
-│   ├── popup.ts           # Extension popup UI logic
-│   ├── types.ts           # TypeScript definitions & default templates
-│   ├── styles.css         # Extension styling with dark mode support
-│   ├── utils/
-│   │   └── promptLoader.ts # Loads system prompts from files
-│   └── prompts/
-│       └── default-system-prompt.txt # AI behavior instructions
-├── dist/              # Built files (generated)
-└── ...
-```
-
 ## Code Style Guidelines
 
 - Use TypeScript for all new code

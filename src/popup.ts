@@ -1,6 +1,6 @@
 // Popup script for ChatterBox
-import { loadDefaultSystemPrompt } from './utils/promptLoader';
-import { DEFAULT_TEMPLATES, DEFAULT_LINKEDIN_POST_TEMPLATES, ReplyTemplate, OPENAI_MODELS, OPENROUTER_MODELS, ModelOption } from './types';
+import { loadXSystemPrompt } from './utils/promptLoader';
+import { DEFAULT_X_TEMPLATES, DEFAULT_LINKEDIN_POST_TEMPLATES, ReplyTemplate, OPENROUTER_MODELS, ModelOption } from './types';
 
 interface AdvancedSettings {
     temperature: number;
@@ -8,7 +8,6 @@ interface AdvancedSettings {
     presencePenalty: number;
     frequencyPenalty: number;
     typingSpeed: number;
-    casualReplies: boolean;
 }
 
 const DEFAULT_SETTINGS: AdvancedSettings = {
@@ -16,8 +15,7 @@ const DEFAULT_SETTINGS: AdvancedSettings = {
     maxTokens: 40,
     presencePenalty: 0.6,
     frequencyPenalty: 0.3,
-    typingSpeed: 5,
-    casualReplies: false
+    typingSpeed: 5
 };
 
 class PopupManager {
@@ -26,46 +24,52 @@ class PopupManager {
     private statusMessage!: HTMLElement;
     private modelSelect!: HTMLSelectElement;
     private modelDescription!: HTMLElement;
-    private systemPromptInput!: HTMLTextAreaElement;
-    private resetPromptButton!: HTMLButtonElement;
-    private advancedToggle!: HTMLButtonElement;
-    private advancedContent!: HTMLElement;
-    private temperatureInput!: HTMLInputElement;
-    private temperatureValue!: HTMLElement;
-    private maxTokensInput!: HTMLInputElement;
-    private presencePenaltyInput!: HTMLInputElement;
-    private presencePenaltyValue!: HTMLElement;
-    private frequencyPenaltyInput!: HTMLInputElement;
-    private frequencyPenaltyValue!: HTMLElement;
-    private resetAdvancedButton!: HTMLButtonElement;
-    private defaultSystemPrompt: string = 'Loading...';
+
+    // Tab elements
     private generalTab!: HTMLButtonElement;
-    private templatesTab!: HTMLButtonElement;
+    private xSettingsTab!: HTMLButtonElement;
+    private linkedinSettingsTab!: HTMLButtonElement;
     private generalContent!: HTMLElement;
-    private templatesContent!: HTMLElement;
-    private xTemplatesHeader!: HTMLElement;
-    private xTemplatesToggle!: HTMLElement;
-    private linkedinTemplatesHeader!: HTMLElement;
-    private linkedinTemplatesToggle!: HTMLElement;
-    private linkedinPostTemplatesHeader!: HTMLElement;
-    private linkedinPostTemplatesToggle!: HTMLElement;
-    private templatesXList!: HTMLElement;
+    private xSettingsContent!: HTMLElement;
+    private linkedinSettingsContent!: HTMLElement;
+
+    // X Settings
+    private xSystemPromptInput!: HTMLTextAreaElement;
+    private resetXPromptButton!: HTMLButtonElement;
+    private xAdvancedToggle!: HTMLButtonElement;
+    private xAdvancedContent!: HTMLElement;
+    private xTemperatureInput!: HTMLInputElement;
+    private xMaxTokensInput!: HTMLInputElement;
+    private xPresencePenaltyInput!: HTMLInputElement;
+    private xFrequencyPenaltyInput!: HTMLInputElement;
+    private xTypingSpeedInput!: HTMLInputElement;
+    private resetXAdvancedButton!: HTMLButtonElement;
+    private xTemplatesList!: HTMLElement;
     private addXTemplateButton!: HTMLButtonElement;
     private resetXTemplatesButton!: HTMLButtonElement;
-    private xTemplates: ReplyTemplate[] = [];
-    private templatesLinkedInList!: HTMLElement;
-    private addLinkedInTemplateButton!: HTMLButtonElement;
-    private resetLinkedInTemplatesButton!: HTMLButtonElement;
-    private linkedinTemplates: ReplyTemplate[] = [];
-    private templatesLinkedInPostList!: HTMLElement;
+
+    // LinkedIn Settings
+    private linkedinSystemPromptInput!: HTMLTextAreaElement;
+    private resetLinkedInPromptButton!: HTMLButtonElement;
+    private linkedinAdvancedToggle!: HTMLButtonElement;
+    private linkedinAdvancedContent!: HTMLElement;
+    private linkedinTemperatureInput!: HTMLInputElement;
+    private linkedinMaxTokensInput!: HTMLInputElement;
+    private linkedinPresencePenaltyInput!: HTMLInputElement;
+    private linkedinFrequencyPenaltyInput!: HTMLInputElement;
+    private linkedinTypingSpeedInput!: HTMLInputElement;
+    private resetLinkedInAdvancedButton!: HTMLButtonElement;
+    private linkedinConnectionTemplatesList!: HTMLElement;
+    private addLinkedInConnectionTemplateButton!: HTMLButtonElement;
+    private resetLinkedInConnectionTemplatesButton!: HTMLButtonElement;
+    private linkedinPostTemplatesList!: HTMLElement;
     private addLinkedInPostTemplateButton!: HTMLButtonElement;
     private resetLinkedInPostTemplatesButton!: HTMLButtonElement;
+
+    private defaultSystemPrompt: string = 'Loading...';
+    private xTemplates: ReplyTemplate[] = [];
+    private linkedinConnectionTemplates: ReplyTemplate[] = [];
     private linkedinPostTemplates: ReplyTemplate[] = [];
-    private typingSpeedInput!: HTMLInputElement;
-    private casualRepliesInput!: HTMLInputElement;
-    private xTemplatesContent!: HTMLElement;
-    private linkedinTemplatesContent!: HTMLElement;
-    private linkedinPostTemplatesContent!: HTMLElement;
 
     constructor() {
         this.initializeElements();
@@ -73,52 +77,58 @@ class PopupManager {
     }
 
     private initializeElements() {
+        // General tab elements
         this.openrouterApiKeyInput = document.getElementById('openrouterApiKey') as HTMLInputElement;
         this.saveButton = document.getElementById('saveButton') as HTMLButtonElement;
         this.statusMessage = document.getElementById('statusMessage') as HTMLElement;
         this.modelSelect = document.getElementById('modelSelect') as HTMLSelectElement;
         this.modelDescription = document.getElementById('modelDescription') as HTMLElement;
-        this.systemPromptInput = document.getElementById('systemPrompt') as HTMLTextAreaElement;
-        this.resetPromptButton = document.getElementById('resetPromptButton') as HTMLButtonElement;
-        this.advancedToggle = document.getElementById('advancedToggle') as HTMLButtonElement;
-        this.advancedContent = document.getElementById('advancedContent') as HTMLElement;
-        this.temperatureInput = document.getElementById('temperature') as HTMLInputElement;
-        this.temperatureValue = document.getElementById('temperatureValue') as HTMLElement;
-        this.maxTokensInput = document.getElementById('maxTokens') as HTMLInputElement;
-        this.presencePenaltyInput = document.getElementById('presencePenalty') as HTMLInputElement;
-        this.presencePenaltyValue = document.getElementById('presencePenaltyValue') as HTMLElement;
-        this.frequencyPenaltyInput = document.getElementById('frequencyPenalty') as HTMLInputElement;
-        this.frequencyPenaltyValue = document.getElementById('frequencyPenaltyValue') as HTMLElement;
-        this.resetAdvancedButton = document.getElementById('resetAdvancedButton') as HTMLButtonElement;
+
+        // Tab elements
         this.generalTab = document.getElementById('generalTab') as HTMLButtonElement;
-        this.templatesTab = document.getElementById('templatesTab') as HTMLButtonElement;
+        this.xSettingsTab = document.getElementById('xSettingsTab') as HTMLButtonElement;
+        this.linkedinSettingsTab = document.getElementById('linkedinSettingsTab') as HTMLButtonElement;
         this.generalContent = document.getElementById('generalContent') as HTMLElement;
-        this.templatesContent = document.getElementById('templatesContent') as HTMLElement;
-        this.xTemplatesHeader = document.getElementById('xTemplatesHeader') as HTMLElement;
-        this.xTemplatesToggle = document.getElementById('xTemplatesToggle') as HTMLElement;
-        this.linkedinTemplatesHeader = document.getElementById('linkedinTemplatesHeader') as HTMLElement;
-        this.linkedinTemplatesToggle = document.getElementById('linkedinTemplatesToggle') as HTMLElement;
-        this.linkedinPostTemplatesHeader = document.getElementById('linkedinPostTemplatesHeader') as HTMLElement;
-        this.linkedinPostTemplatesToggle = document.getElementById('linkedinPostTemplatesToggle') as HTMLElement;
-        this.templatesXList = document.getElementById('templatesXList') as HTMLElement;
+        this.xSettingsContent = document.getElementById('xSettingsContent') as HTMLElement;
+        this.linkedinSettingsContent = document.getElementById('linkedinSettingsContent') as HTMLElement;
+
+        // X Settings elements
+        this.xSystemPromptInput = document.getElementById('xSystemPrompt') as HTMLTextAreaElement;
+        this.resetXPromptButton = document.getElementById('resetXPromptButton') as HTMLButtonElement;
+        this.xAdvancedToggle = document.getElementById('xAdvancedToggle') as HTMLButtonElement;
+        this.xAdvancedContent = document.getElementById('xAdvancedContent') as HTMLElement;
+        this.xTemperatureInput = document.getElementById('xTemperature') as HTMLInputElement;
+        this.xMaxTokensInput = document.getElementById('xMaxTokens') as HTMLInputElement;
+        this.xPresencePenaltyInput = document.getElementById('xPresencePenalty') as HTMLInputElement;
+        this.xFrequencyPenaltyInput = document.getElementById('xFrequencyPenalty') as HTMLInputElement;
+        this.xTypingSpeedInput = document.getElementById('xTypingSpeed') as HTMLInputElement;
+        this.resetXAdvancedButton = document.getElementById('resetXAdvancedButton') as HTMLButtonElement;
+        this.xTemplatesList = document.getElementById('xTemplatesList') as HTMLElement;
         this.addXTemplateButton = document.getElementById('addXTemplateButton') as HTMLButtonElement;
         this.resetXTemplatesButton = document.getElementById('resetXTemplatesButton') as HTMLButtonElement;
-        this.templatesLinkedInList = document.getElementById('templatesLinkedInList') as HTMLElement;
-        this.addLinkedInTemplateButton = document.getElementById('addLinkedInTemplateButton') as HTMLButtonElement;
-        this.resetLinkedInTemplatesButton = document.getElementById('resetLinkedInTemplatesButton') as HTMLButtonElement;
-        this.templatesLinkedInPostList = document.getElementById('templatesLinkedInPostList') as HTMLElement;
+
+        // LinkedIn Settings elements
+        this.linkedinSystemPromptInput = document.getElementById('linkedinSystemPrompt') as HTMLTextAreaElement;
+        this.resetLinkedInPromptButton = document.getElementById('resetLinkedInPromptButton') as HTMLButtonElement;
+        this.linkedinAdvancedToggle = document.getElementById('linkedinAdvancedToggle') as HTMLButtonElement;
+        this.linkedinAdvancedContent = document.getElementById('linkedinAdvancedContent') as HTMLElement;
+        this.linkedinTemperatureInput = document.getElementById('linkedinTemperature') as HTMLInputElement;
+        this.linkedinMaxTokensInput = document.getElementById('linkedinMaxTokens') as HTMLInputElement;
+        this.linkedinPresencePenaltyInput = document.getElementById('linkedinPresencePenalty') as HTMLInputElement;
+        this.linkedinFrequencyPenaltyInput = document.getElementById('linkedinFrequencyPenalty') as HTMLInputElement;
+        this.linkedinTypingSpeedInput = document.getElementById('linkedinTypingSpeed') as HTMLInputElement;
+        this.resetLinkedInAdvancedButton = document.getElementById('resetLinkedInAdvancedButton') as HTMLButtonElement;
+        this.linkedinConnectionTemplatesList = document.getElementById('linkedinConnectionTemplatesList') as HTMLElement;
+        this.addLinkedInConnectionTemplateButton = document.getElementById('addLinkedInConnectionTemplateButton') as HTMLButtonElement;
+        this.resetLinkedInConnectionTemplatesButton = document.getElementById('resetLinkedInConnectionTemplatesButton') as HTMLButtonElement;
+        this.linkedinPostTemplatesList = document.getElementById('linkedinPostTemplatesList') as HTMLElement;
         this.addLinkedInPostTemplateButton = document.getElementById('addLinkedInPostTemplateButton') as HTMLButtonElement;
         this.resetLinkedInPostTemplatesButton = document.getElementById('resetLinkedInPostTemplatesButton') as HTMLButtonElement;
-        this.typingSpeedInput = document.getElementById('typingSpeed') as HTMLInputElement;
-        this.casualRepliesInput = document.getElementById('casualReplies') as HTMLInputElement;
-        this.xTemplatesContent = document.getElementById('xTemplatesContent') as HTMLElement;
-        this.linkedinTemplatesContent = document.getElementById('linkedinTemplatesContent') as HTMLElement;
-        this.linkedinPostTemplatesContent = document.getElementById('linkedinPostTemplatesContent') as HTMLElement;
     }
 
     private async init() {
         // Load the default prompt
-        this.defaultSystemPrompt = await loadDefaultSystemPrompt();
+        this.defaultSystemPrompt = await loadXSystemPrompt();
 
         // Load existing settings
         await this.loadSettings();
@@ -131,6 +141,7 @@ class PopupManager {
     }
 
     private setupEventListeners() {
+        // General tab listeners
         this.saveButton.addEventListener('click', () => this.saveSettings());
         this.openrouterApiKeyInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -141,81 +152,59 @@ class PopupManager {
             this.updateModelDescription();
             this.saveSettings();
         });
-        this.systemPromptInput.addEventListener('change', () => this.saveSettings());
-        this.resetPromptButton.addEventListener('click', () => this.resetSystemPrompt());
-
-        // Advanced settings listeners
-        this.advancedToggle.addEventListener('click', () => this.toggleAdvancedSettings());
-        this.temperatureInput.addEventListener('input', () => this.updateRangeValue('temperature'));
-        this.presencePenaltyInput.addEventListener('input', () => this.updateRangeValue('presencePenalty'));
-        this.frequencyPenaltyInput.addEventListener('input', () => this.updateRangeValue('frequencyPenalty'));
-        this.resetAdvancedButton.addEventListener('click', () => this.resetAdvancedSettings());
-
-        // Save on any advanced setting change
-        const advancedInputs = [
-            this.temperatureInput,
-            this.maxTokensInput,
-            this.presencePenaltyInput,
-            this.frequencyPenaltyInput
-        ];
-        advancedInputs.forEach(input => {
-            input.addEventListener('change', () => this.saveSettings());
-        });
 
         // Tab switching
         this.generalTab.addEventListener('click', () => this.switchTab('general'));
-        this.templatesTab.addEventListener('click', () => this.switchTab('templates'));
+        this.xSettingsTab.addEventListener('click', () => this.switchTab('x'));
+        this.linkedinSettingsTab.addEventListener('click', () => this.switchTab('linkedin'));
 
-        // Template card toggle listeners
-        this.xTemplatesHeader.addEventListener('click', () => this.toggleTemplateCard('xTemplates'));
-        this.linkedinTemplatesHeader.addEventListener('click', () => this.toggleTemplateCard('linkedinTemplates'));
-        this.linkedinPostTemplatesHeader.addEventListener('click', () => this.toggleTemplateCard('linkedinPostTemplates'));
+        // X Settings listeners
+        this.xSystemPromptInput.addEventListener('change', () => this.saveXSettings());
+        this.resetXPromptButton.addEventListener('click', () => this.resetXSystemPrompt());
+        this.xAdvancedToggle.addEventListener('click', () => this.toggleAdvancedSettings('x'));
 
-        // Template management for X
+        // X Advanced settings listeners
+        this.xTemperatureInput.addEventListener('input', () => this.updateRangeValue('x', 'temperature'));
+        this.xPresencePenaltyInput.addEventListener('input', () => this.updateRangeValue('x', 'presencePenalty'));
+        this.xFrequencyPenaltyInput.addEventListener('input', () => this.updateRangeValue('x', 'frequencyPenalty'));
+        this.xTypingSpeedInput.addEventListener('input', () => this.updateRangeValue('x', 'typingSpeed'));
+        
+        // Save X advanced settings on change
+        [this.xTemperatureInput, this.xMaxTokensInput, this.xPresencePenaltyInput, 
+         this.xFrequencyPenaltyInput, this.xTypingSpeedInput].forEach(input => {
+            input.addEventListener('change', () => this.saveXSettings());
+        });
+
+        this.resetXAdvancedButton.addEventListener('click', () => this.resetXAdvancedSettings());
+
+        // X Templates listeners
         this.addXTemplateButton.addEventListener('click', () => this.addTemplate('x'));
         this.resetXTemplatesButton.addEventListener('click', () => this.resetTemplates('x'));
 
-        // Template management for LinkedIn
-        this.addLinkedInTemplateButton.addEventListener('click', () => this.addTemplate('linkedin'));
-        this.resetLinkedInTemplatesButton.addEventListener('click', () => this.resetTemplates('linkedin'));
+        // LinkedIn Settings listeners
+        this.linkedinSystemPromptInput.addEventListener('change', () => this.saveLinkedInSettings());
+        this.resetLinkedInPromptButton.addEventListener('click', () => this.resetLinkedInSystemPrompt());
+        this.linkedinAdvancedToggle.addEventListener('click', () => this.toggleAdvancedSettings('linkedin'));
 
-        // Template management for LinkedIn Posts
+        // LinkedIn Advanced settings listeners
+        this.linkedinTemperatureInput.addEventListener('input', () => this.updateRangeValue('linkedin', 'temperature'));
+        this.linkedinPresencePenaltyInput.addEventListener('input', () => this.updateRangeValue('linkedin', 'presencePenalty'));
+        this.linkedinFrequencyPenaltyInput.addEventListener('input', () => this.updateRangeValue('linkedin', 'frequencyPenalty'));
+        this.linkedinTypingSpeedInput.addEventListener('input', () => this.updateRangeValue('linkedin', 'typingSpeed'));
+        
+        // Save LinkedIn advanced settings on change
+        [this.linkedinTemperatureInput, this.linkedinMaxTokensInput, this.linkedinPresencePenaltyInput, 
+         this.linkedinFrequencyPenaltyInput, this.linkedinTypingSpeedInput].forEach(input => {
+            input.addEventListener('change', () => this.saveLinkedInSettings());
+        });
+
+        this.resetLinkedInAdvancedButton.addEventListener('click', () => this.resetLinkedInAdvancedSettings());
+
+        // LinkedIn Templates listeners
+        this.addLinkedInConnectionTemplateButton.addEventListener('click', () => this.addTemplate('linkedinConnection'));
+        this.resetLinkedInConnectionTemplatesButton.addEventListener('click', () => this.resetTemplates('linkedinConnection'));
         this.addLinkedInPostTemplateButton.addEventListener('click', () => this.addTemplate('linkedinPost'));
         this.resetLinkedInPostTemplatesButton.addEventListener('click', () => this.resetTemplates('linkedinPost'));
-
-        // Advanced settings value display updates
-        const temperatureValue = document.getElementById('temperatureValue');
-        const presencePenaltyValue = document.getElementById('presencePenaltyValue');
-        const frequencyPenaltyValue = document.getElementById('frequencyPenaltyValue');
-        const typingSpeedValue = document.getElementById('typingSpeedValue');
-
-        this.temperatureInput.addEventListener('input', () => {
-            temperatureValue!.textContent = this.temperatureInput.value;
-        });
-
-        this.presencePenaltyInput.addEventListener('input', () => {
-            presencePenaltyValue!.textContent = this.presencePenaltyInput.value;
-        });
-
-        this.frequencyPenaltyInput.addEventListener('input', () => {
-            frequencyPenaltyValue!.textContent = this.frequencyPenaltyInput.value;
-        });
-
-        this.typingSpeedInput.addEventListener('input', () => {
-            typingSpeedValue!.textContent = this.typingSpeedInput.value;
-        });
-
-        // Save settings when values change
-        this.temperatureInput.addEventListener('change', () => this.saveAdvancedSettings());
-        this.maxTokensInput.addEventListener('change', () => this.saveAdvancedSettings());
-        this.presencePenaltyInput.addEventListener('change', () => this.saveAdvancedSettings());
-        this.frequencyPenaltyInput.addEventListener('change', () => this.saveAdvancedSettings());
-        this.typingSpeedInput.addEventListener('change', () => this.saveAdvancedSettings());
-        this.casualRepliesInput.addEventListener('change', () => this.saveAdvancedSettings());
-
-        // Reset advanced settings
-        const resetAdvancedButton = document.getElementById('resetAdvancedButton');
-        resetAdvancedButton?.addEventListener('click', () => this.resetAdvancedSettings());
     }
 
     private async loadSettings() {
@@ -223,8 +212,8 @@ class PopupManager {
             const result = await chrome.storage.sync.get([
                 'openrouterApiKey',
                 'model',
-                'systemPrompt',
-                'advancedSettings'
+                'xSettings',
+                'linkedinSettings'
             ]);
 
             if (result.openrouterApiKey) {
@@ -236,28 +225,50 @@ class PopupManager {
                 // Set default model
                 this.modelSelect.value = 'openai/gpt-4.1';
             }
-            this.systemPromptInput.value = result.systemPrompt || this.defaultSystemPrompt;
 
-            // Load advanced settings
-            const settings: AdvancedSettings = result.advancedSettings || DEFAULT_SETTINGS;
-            this.temperatureInput.value = settings.temperature.toString();
-            this.maxTokensInput.value = settings.maxTokens.toString();
-            this.presencePenaltyInput.value = settings.presencePenalty.toString();
-            this.frequencyPenaltyInput.value = settings.frequencyPenalty.toString();
-            this.typingSpeedInput.value = settings.typingSpeed.toString();
-            this.casualRepliesInput.checked = settings.casualReplies || false;
+            // Load X settings
+            const xSettings = result.xSettings || {
+                systemPrompt: this.defaultSystemPrompt,
+                advancedSettings: DEFAULT_SETTINGS
+            };
+            this.xSystemPromptInput.value = xSettings.systemPrompt || this.defaultSystemPrompt;
+            this.loadAdvancedSettings('x', xSettings.advancedSettings || DEFAULT_SETTINGS);
+
+            // Load LinkedIn settings  
+            const linkedinSettings = result.linkedinSettings || {
+                systemPrompt: 'You are a professional LinkedIn user focused on meaningful business connections.',
+                advancedSettings: { ...DEFAULT_SETTINGS, maxTokens: 60 }
+            };
+            this.linkedinSystemPromptInput.value = linkedinSettings.systemPrompt;
+            this.loadAdvancedSettings('linkedin', linkedinSettings.advancedSettings || { ...DEFAULT_SETTINGS, maxTokens: 60 });
 
             // Update range values
             this.updateAllRangeValues();
+            this.updateModelDescription();
         } catch (error) {
             console.error('Error loading settings:', error);
+        }
+    }
+
+    private loadAdvancedSettings(platform: 'x' | 'linkedin', settings: AdvancedSettings) {
+        if (platform === 'x') {
+            this.xTemperatureInput.value = settings.temperature.toString();
+            this.xMaxTokensInput.value = settings.maxTokens.toString();
+            this.xPresencePenaltyInput.value = settings.presencePenalty.toString();
+            this.xFrequencyPenaltyInput.value = settings.frequencyPenalty.toString();
+            this.xTypingSpeedInput.value = settings.typingSpeed.toString();
+        } else {
+            this.linkedinTemperatureInput.value = settings.temperature.toString();
+            this.linkedinMaxTokensInput.value = settings.maxTokens.toString();
+            this.linkedinPresencePenaltyInput.value = settings.presencePenalty.toString();
+            this.linkedinFrequencyPenaltyInput.value = settings.frequencyPenalty.toString();
+            this.linkedinTypingSpeedInput.value = settings.typingSpeed.toString();
         }
     }
 
     private async saveSettings() {
         const openrouterApiKey = this.openrouterApiKeyInput.value.trim();
         const model = this.modelSelect.value;
-        const systemPrompt = this.systemPromptInput.value.trim();
 
         // Validate OpenRouter API key
         if (!openrouterApiKey) {
@@ -273,69 +284,154 @@ class PopupManager {
             this.saveButton.disabled = true;
             this.saveButton.textContent = 'Saving...';
 
-            const advancedSettings: AdvancedSettings = {
-                temperature: parseFloat(this.temperatureInput.value),
-                maxTokens: parseInt(this.maxTokensInput.value),
-                presencePenalty: parseFloat(this.presencePenaltyInput.value),
-                frequencyPenalty: parseFloat(this.frequencyPenaltyInput.value),
-                typingSpeed: parseFloat(this.typingSpeedInput.value),
-                casualReplies: this.casualRepliesInput.checked
-            };
-
             await chrome.storage.sync.set({
                 openrouterApiKey,
-                model,
-                systemPrompt: systemPrompt || this.defaultSystemPrompt,
-                advancedSettings
+                model
             });
 
             this.showStatus('Settings saved successfully!', 'success');
 
             setTimeout(() => {
                 this.saveButton.disabled = false;
-                this.saveButton.textContent = 'Save API Key';
+                this.saveButton.textContent = 'Save Settings';
             }, 1000);
 
         } catch (error) {
             console.error('Error saving settings:', error);
             this.showStatus('Error saving settings', 'error');
             this.saveButton.disabled = false;
-            this.saveButton.textContent = 'Save API Key';
+            this.saveButton.textContent = 'Save Settings';
         }
     }
 
-    private toggleAdvancedSettings() {
-        const isExpanded = this.advancedContent.style.display !== 'none';
-        this.advancedContent.style.display = isExpanded ? 'none' : 'block';
-        this.advancedToggle.setAttribute('aria-expanded', (!isExpanded).toString());
+    private async saveXSettings() {
+        try {
+            const advancedSettings: AdvancedSettings = {
+                temperature: parseFloat(this.xTemperatureInput.value),
+                maxTokens: parseInt(this.xMaxTokensInput.value),
+                presencePenalty: parseFloat(this.xPresencePenaltyInput.value),
+                frequencyPenalty: parseFloat(this.xFrequencyPenaltyInput.value),
+                typingSpeed: parseFloat(this.xTypingSpeedInput.value)
+            };
+
+            const xSettings = {
+                systemPrompt: this.xSystemPromptInput.value.trim() || this.defaultSystemPrompt,
+                advancedSettings,
+                templates: this.xTemplates
+            };
+
+            await chrome.storage.sync.set({ xSettings });
+            this.showStatus('X settings saved!', 'success');
+        } catch (error) {
+            console.error('Error saving X settings:', error);
+            this.showStatus('Error saving X settings', 'error');
+        }
     }
 
-    private updateRangeValue(type: 'temperature' | 'presencePenalty' | 'frequencyPenalty') {
-        const input = this[`${type}Input`] as HTMLInputElement;
-        const value = this[`${type}Value`] as HTMLElement;
-        value.textContent = input.value;
+    private async saveLinkedInSettings() {
+        try {
+            const advancedSettings: AdvancedSettings = {
+                temperature: parseFloat(this.linkedinTemperatureInput.value),
+                maxTokens: parseInt(this.linkedinMaxTokensInput.value),
+                presencePenalty: parseFloat(this.linkedinPresencePenaltyInput.value),
+                frequencyPenalty: parseFloat(this.linkedinFrequencyPenaltyInput.value),
+                typingSpeed: parseFloat(this.linkedinTypingSpeedInput.value)
+            };
+
+            const linkedinSettings = {
+                systemPrompt: this.linkedinSystemPromptInput.value.trim() || 'You are a professional LinkedIn user focused on meaningful business connections.',
+                advancedSettings,
+                templates: this.linkedinPostTemplates
+            };
+
+            await chrome.storage.sync.set({ 
+                linkedinSettings,
+                linkedinTemplates: this.linkedinConnectionTemplates
+            });
+            this.showStatus('LinkedIn settings saved!', 'success');
+        } catch (error) {
+            console.error('Error saving LinkedIn settings:', error);
+            this.showStatus('Error saving LinkedIn settings', 'error');
+        }
+    }
+
+    private switchTab(tab: 'general' | 'x' | 'linkedin') {
+        // Update tab buttons
+        this.generalTab.classList.toggle('active', tab === 'general');
+        this.xSettingsTab.classList.toggle('active', tab === 'x');
+        this.linkedinSettingsTab.classList.toggle('active', tab === 'linkedin');
+
+        // Update content visibility
+        this.generalContent.classList.toggle('active', tab === 'general');
+        this.xSettingsContent.classList.toggle('active', tab === 'x');
+        this.linkedinSettingsContent.classList.toggle('active', tab === 'linkedin');
+    }
+
+    private toggleAdvancedSettings(platform: 'x' | 'linkedin') {
+        const content = platform === 'x' ? this.xAdvancedContent : this.linkedinAdvancedContent;
+        const toggle = platform === 'x' ? this.xAdvancedToggle : this.linkedinAdvancedToggle;
+        
+        const isExpanded = content.style.display !== 'none';
+        content.style.display = isExpanded ? 'none' : 'block';
+        toggle.setAttribute('aria-expanded', (!isExpanded).toString());
+        
+        const icon = toggle.querySelector('.toggle-icon');
+        if (icon) {
+            icon.textContent = isExpanded ? '▶' : '▼';
+        }
+    }
+
+    private updateRangeValue(platform: 'x' | 'linkedin', type: 'temperature' | 'presencePenalty' | 'frequencyPenalty' | 'typingSpeed') {
+        const valueElement = document.getElementById(`${platform}${type.charAt(0).toUpperCase() + type.slice(1)}Value`);
+        const inputElement = document.getElementById(`${platform}${type.charAt(0).toUpperCase() + type.slice(1)}`);
+        
+        if (valueElement && inputElement) {
+            valueElement.textContent = (inputElement as HTMLInputElement).value;
+        }
     }
 
     private updateAllRangeValues() {
-        this.updateRangeValue('temperature');
-        this.updateRangeValue('presencePenalty');
-        this.updateRangeValue('frequencyPenalty');
+        // Update X range values
+        this.updateRangeValue('x', 'temperature');
+        this.updateRangeValue('x', 'presencePenalty');
+        this.updateRangeValue('x', 'frequencyPenalty');
+        this.updateRangeValue('x', 'typingSpeed');
+
+        // Update LinkedIn range values
+        this.updateRangeValue('linkedin', 'temperature');
+        this.updateRangeValue('linkedin', 'presencePenalty');
+        this.updateRangeValue('linkedin', 'frequencyPenalty');
+        this.updateRangeValue('linkedin', 'typingSpeed');
     }
 
-    private resetSystemPrompt() {
-        this.systemPromptInput.value = this.defaultSystemPrompt;
-        this.saveSettings();
+    private resetXSystemPrompt() {
+        this.xSystemPromptInput.value = this.defaultSystemPrompt;
+        this.saveXSettings();
     }
 
-    private resetAdvancedSettings() {
-        this.temperatureInput.value = DEFAULT_SETTINGS.temperature.toString();
-        this.maxTokensInput.value = DEFAULT_SETTINGS.maxTokens.toString();
-        this.presencePenaltyInput.value = DEFAULT_SETTINGS.presencePenalty.toString();
-        this.frequencyPenaltyInput.value = DEFAULT_SETTINGS.frequencyPenalty.toString();
-        this.typingSpeedInput.value = DEFAULT_SETTINGS.typingSpeed.toString();
-        this.casualRepliesInput.checked = DEFAULT_SETTINGS.casualReplies;
+    private resetLinkedInSystemPrompt() {
+        this.linkedinSystemPromptInput.value = 'You are a professional LinkedIn user focused on meaningful business connections.';
+        this.saveLinkedInSettings();
+    }
+
+    private resetXAdvancedSettings() {
+        this.xTemperatureInput.value = DEFAULT_SETTINGS.temperature.toString();
+        this.xMaxTokensInput.value = DEFAULT_SETTINGS.maxTokens.toString();
+        this.xPresencePenaltyInput.value = DEFAULT_SETTINGS.presencePenalty.toString();
+        this.xFrequencyPenaltyInput.value = DEFAULT_SETTINGS.frequencyPenalty.toString();
+        this.xTypingSpeedInput.value = DEFAULT_SETTINGS.typingSpeed.toString();
         this.updateAllRangeValues();
-        this.saveSettings();
+        this.saveXSettings();
+    }
+
+    private resetLinkedInAdvancedSettings() {
+        this.linkedinTemperatureInput.value = DEFAULT_SETTINGS.temperature.toString();
+        this.linkedinMaxTokensInput.value = '60'; // LinkedIn default higher
+        this.linkedinPresencePenaltyInput.value = DEFAULT_SETTINGS.presencePenalty.toString();
+        this.linkedinFrequencyPenaltyInput.value = DEFAULT_SETTINGS.frequencyPenalty.toString();
+        this.linkedinTypingSpeedInput.value = DEFAULT_SETTINGS.typingSpeed.toString();
+        this.updateAllRangeValues();
+        this.saveLinkedInSettings();
     }
 
     private showStatus(message: string, type: 'success' | 'error') {
@@ -347,7 +443,6 @@ class PopupManager {
             this.statusMessage.style.display = 'none';
         }, 3000);
     }
-
 
 
     private updateModelDescription() {
@@ -364,51 +459,20 @@ class PopupManager {
         this.modelDescription.textContent = description;
     }
 
-    private switchTab(tab: 'general' | 'templates') {
-        // Update tab buttons
-        this.generalTab.classList.toggle('active', tab === 'general');
-        this.templatesTab.classList.toggle('active', tab === 'templates');
-
-        // Update content visibility
-        this.generalContent.classList.toggle('active', tab === 'general');
-        this.templatesContent.classList.toggle('active', tab === 'templates');
-    }
-
-    private toggleTemplateCard(cardType: 'xTemplates' | 'linkedinTemplates' | 'linkedinPostTemplates') {
-        let content: HTMLElement;
-        let toggle: HTMLElement;
-        
-        switch (cardType) {
-            case 'xTemplates':
-                content = this.xTemplatesContent;
-                toggle = this.xTemplatesToggle;
-                break;
-            case 'linkedinTemplates':
-                content = this.linkedinTemplatesContent;
-                toggle = this.linkedinTemplatesToggle;
-                break;
-            case 'linkedinPostTemplates':
-                content = this.linkedinPostTemplatesContent;
-                toggle = this.linkedinPostTemplatesToggle;
-                break;
-        }
-        
-        const isCollapsed = content.classList.contains('collapsed');
-        content.classList.toggle('collapsed', !isCollapsed);
-        toggle.textContent = isCollapsed ? '▼' : '▶';
-    }
-
     private async loadTemplates() {
         try {
-            const result = await chrome.storage.sync.get(['templates', 'linkedinTemplates', 'linkedinPostTemplates']);
-            this.xTemplates = result.templates || [...DEFAULT_TEMPLATES];
+            const result = await chrome.storage.sync.get(['xSettings', 'linkedinSettings', 'linkedinTemplates']);
+            
+            // Load X templates from xSettings
+            this.xTemplates = result.xSettings?.templates || [...DEFAULT_X_TEMPLATES];
 
-            this.linkedinTemplates = result.linkedinTemplates || [
+            // Load LinkedIn connection templates (separate key for backward compatibility)
+            this.linkedinConnectionTemplates = result.linkedinTemplates || [
                 {
                     id: 'connect1',
                     name: 'Message #1',
                     prompt: 'Hi {name}, I came across your profile and would love to connect to share insights and opportunities.',
-                    icon: '🔗'
+                    icon: '💬'
                 },
                 {
                     id: 'connect2',
@@ -418,7 +482,8 @@ class PopupManager {
                 }
             ];
 
-            this.linkedinPostTemplates = result.linkedinPostTemplates || [...DEFAULT_LINKEDIN_POST_TEMPLATES];
+            // Load LinkedIn post reply templates from linkedinSettings
+            this.linkedinPostTemplates = result.linkedinSettings?.templates || [...DEFAULT_LINKEDIN_POST_TEMPLATES];
 
             this.renderTemplates();
         } catch (error) {
@@ -428,28 +493,28 @@ class PopupManager {
 
     private renderTemplates() {
         // Render X templates
-        this.templatesXList.innerHTML = '';
+        this.xTemplatesList.innerHTML = '';
         this.xTemplates.forEach((template, index) => {
             const templateEl = this.createTemplateElement(template, index, 'x');
-            this.templatesXList.appendChild(templateEl);
+            this.xTemplatesList.appendChild(templateEl);
         });
 
-        // Render LinkedIn templates
-        this.templatesLinkedInList.innerHTML = '';
-        this.linkedinTemplates.forEach((template, index) => {
-            const templateEl = this.createTemplateElement(template, index, 'linkedin');
-            this.templatesLinkedInList.appendChild(templateEl);
+        // Render LinkedIn connection templates
+        this.linkedinConnectionTemplatesList.innerHTML = '';
+        this.linkedinConnectionTemplates.forEach((template, index) => {
+            const templateEl = this.createTemplateElement(template, index, 'linkedinConnection');
+            this.linkedinConnectionTemplatesList.appendChild(templateEl);
         });
 
-        // Render LinkedIn Post templates
-        this.templatesLinkedInPostList.innerHTML = '';
+        // Render LinkedIn post templates
+        this.linkedinPostTemplatesList.innerHTML = '';
         this.linkedinPostTemplates.forEach((template, index) => {
             const templateEl = this.createTemplateElement(template, index, 'linkedinPost');
-            this.templatesLinkedInPostList.appendChild(templateEl);
+            this.linkedinPostTemplatesList.appendChild(templateEl);
         });
     }
 
-    private createTemplateElement(template: ReplyTemplate, index: number, platform: 'x' | 'linkedin' | 'linkedinPost'): HTMLElement {
+    private createTemplateElement(template: ReplyTemplate, index: number, platform: 'x' | 'linkedinConnection' | 'linkedinPost'): HTMLElement {
         const div = document.createElement('div');
         div.className = 'template-item';
         div.innerHTML = `
@@ -514,67 +579,74 @@ class PopupManager {
         return div;
     }
 
-    private async updateTemplate(index: number, template: ReplyTemplate, platform: 'x' | 'linkedin' | 'linkedinPost') {
+    private async updateTemplate(index: number, template: ReplyTemplate, platform: 'x' | 'linkedinConnection' | 'linkedinPost') {
         if (platform === 'x') {
             this.xTemplates[index] = template;
-        } else if (platform === 'linkedin') {
-            this.linkedinTemplates[index] = template;
+            await this.saveXSettings();
+        } else if (platform === 'linkedinConnection') {
+            this.linkedinConnectionTemplates[index] = template;
+            await this.saveLinkedInSettings();
         } else if (platform === 'linkedinPost') {
             this.linkedinPostTemplates[index] = template;
+            await this.saveLinkedInSettings();
         }
-        await this.saveTemplates();
         this.renderTemplates();
     }
 
-    private async deleteTemplate(index: number, platform: 'x' | 'linkedin' | 'linkedinPost') {
+    private async deleteTemplate(index: number, platform: 'x' | 'linkedinConnection' | 'linkedinPost') {
         if (platform === 'x') {
             this.xTemplates.splice(index, 1);
-        } else if (platform === 'linkedin') {
-            this.linkedinTemplates.splice(index, 1);
+            await this.saveXSettings();
+        } else if (platform === 'linkedinConnection') {
+            this.linkedinConnectionTemplates.splice(index, 1);
+            await this.saveLinkedInSettings();
         } else if (platform === 'linkedinPost') {
             this.linkedinPostTemplates.splice(index, 1);
+            await this.saveLinkedInSettings();
         }
-        await this.saveTemplates();
         this.renderTemplates();
     }
 
-    private async addTemplate(platform: 'x' | 'linkedin' | 'linkedinPost') {
+    private async addTemplate(platform: 'x' | 'linkedinConnection' | 'linkedinPost') {
         const newTemplate: ReplyTemplate = {
             id: `custom-${Date.now()}`,
-            name: platform === 'x' ? 'New Template' : platform === 'linkedin' ? 'New Message' : 'New Post Template',
-            prompt: platform === 'x' ? 'Enter your custom prompt here' : platform === 'linkedin' ? 'Enter your message here' : 'Enter your LinkedIn post comment prompt here',
-            icon: platform === 'x' ? '📝' : platform === 'linkedin' ? '🔗' : '💼'
+            name: platform === 'x' ? 'New Template' : platform === 'linkedinConnection' ? 'New Connection Message' : 'New Post Template',
+            prompt: platform === 'x' ? 'Enter your custom prompt here' : platform === 'linkedinConnection' ? 'Hi {name}, enter your message here' : 'Enter your LinkedIn post comment prompt here',
+            icon: platform === 'x' ? '📝' : platform === 'linkedinConnection' ? '💬' : '💼'
         };
 
         if (platform === 'x') {
             this.xTemplates.push(newTemplate);
-        } else if (platform === 'linkedin') {
-            this.linkedinTemplates.push(newTemplate);
+            await this.saveXSettings();
+        } else if (platform === 'linkedinConnection') {
+            this.linkedinConnectionTemplates.push(newTemplate);
+            await this.saveLinkedInSettings();
         } else if (platform === 'linkedinPost') {
             this.linkedinPostTemplates.push(newTemplate);
+            await this.saveLinkedInSettings();
         }
 
-        await this.saveTemplates();
         this.renderTemplates();
 
-        // Scroll to the new template list bottom
+        // Scroll to the new template
         let listEl: HTMLElement;
         if (platform === 'x') {
-            listEl = this.templatesXList;
-        } else if (platform === 'linkedin') {
-            listEl = this.templatesLinkedInList;
+            listEl = this.xTemplatesList;
+        } else if (platform === 'linkedinConnection') {
+            listEl = this.linkedinConnectionTemplatesList;
         } else {
-            listEl = this.templatesLinkedInPostList;
+            listEl = this.linkedinPostTemplatesList;
         }
         listEl.scrollTop = listEl.scrollHeight;
     }
 
-    private async resetTemplates(platform: 'x' | 'linkedin' | 'linkedinPost') {
+    private async resetTemplates(platform: 'x' | 'linkedinConnection' | 'linkedinPost') {
         if (confirm('Are you sure you want to reset templates to default?')) {
             if (platform === 'x') {
-                this.xTemplates = [...DEFAULT_TEMPLATES];
-            } else if (platform === 'linkedin') {
-                this.linkedinTemplates = [
+                this.xTemplates = [...DEFAULT_X_TEMPLATES];
+                await this.saveXSettings();
+            } else if (platform === 'linkedinConnection') {
+                this.linkedinConnectionTemplates = [
                     {
                         id: 'connect1',
                         name: 'Share Insights',
@@ -588,40 +660,15 @@ class PopupManager {
                         icon: '🔗'
                     }
                 ];
+                await this.saveLinkedInSettings();
             } else if (platform === 'linkedinPost') {
                 this.linkedinPostTemplates = [...DEFAULT_LINKEDIN_POST_TEMPLATES];
+                await this.saveLinkedInSettings();
             }
-            await this.saveTemplates();
             this.renderTemplates();
         }
     }
 
-    private async saveTemplates() {
-        try {
-            await chrome.storage.sync.set({
-                templates: this.xTemplates,
-                linkedinTemplates: this.linkedinTemplates,
-                linkedinPostTemplates: this.linkedinPostTemplates
-            });
-        } catch (error) {
-            console.error('Error saving templates:', error);
-            this.showStatus('Error saving templates', 'error');
-        }
-    }
-
-    private async saveAdvancedSettings() {
-        const advancedSettings: AdvancedSettings = {
-            temperature: parseFloat(this.temperatureInput.value),
-            maxTokens: parseInt(this.maxTokensInput.value),
-            presencePenalty: parseFloat(this.presencePenaltyInput.value),
-            frequencyPenalty: parseFloat(this.frequencyPenaltyInput.value),
-            typingSpeed: parseInt(this.typingSpeedInput.value),
-            casualReplies: this.casualRepliesInput.checked
-        };
-
-        await chrome.storage.sync.set({ advancedSettings });
-        this.showStatus('Settings saved!', 'success');
-    }
 
 }
 

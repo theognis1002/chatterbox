@@ -99,7 +99,8 @@ reply-bot/
 │   ├── utils/              # Utility functions
 │   │   └── promptLoader.ts # System prompt file loader
 │   ├── prompts/            # AI system prompts
-│   │   └── default-system-prompt.txt
+│   │   └── linkedin-system-prompt.txt
+│   │   └── x-system-prompt.txt
 │   └── styles.css          # Extension styles with dark mode
 ├── icons/                  # Extension icons
 ├── dist/                   # Built files (generated)
@@ -153,30 +154,26 @@ Plus LinkedIn connection message templates for personalized outreach.
 
 ### Extension not working?
 
-1. Make sure you've entered a valid OpenAI API key
-2. Check that you have credits in your OpenAI account
-3. Verify your selected model is available on your OpenAI plan
-4. Refresh the X page after installing the extension
+1. Make sure you've entered a valid OpenRouter API key
+2. Check that you have credits in your OpenRouter account
+3. Verify your selected model is available through OpenRouter
+4. Refresh the X/LinkedIn page after installing the extension
 5. Check the console for any error messages
 
 ### API Key Issues
 
-- Ensure your API key starts with `sk-`
-- Verify your OpenAI account has available credits
-- Check that the API key has the necessary permissions
-- Confirm your OpenAI plan supports the selected model
+- Get your API key from [OpenRouter](https://openrouter.ai/keys)
+- Verify your OpenRouter account has available credits
+- Check the model availability on your OpenRouter plan
+- Make sure you're connected to the internet
 
 ## Future Enhancements
 
-- [ ] Custom template creation UI improvements
 - [ ] Reply history and analytics  
-- [ ] Sentiment analysis
 - [ ] Multi-language support
 - [ ] Thread continuation support
-- [ ] Template-specific system prompts
 - [ ] Custom model parameter presets
 - [ ] Support for additional social platforms
-- [ ] Non-OpenAI LLM integration
 - [ ] Team/organization template sharing
 
 ## Contributing
@@ -186,15 +183,6 @@ Pull requests are welcome! For major changes, please open an issue first to disc
 ## License
 
 MIT License - see LICENSE file for details
-
-## Note on Icons
-
-The current icons are placeholders. For production use, please create proper icon files in the following sizes:
-- 16x16px (icon16.png)
-- 48x48px (icon48.png)  
-- 128x128px (icon128.png)
-
-You can use tools like [Figma](https://figma.com) or [Canva](https://canva.com) to design your icons. 
 
 ## TODOS
 - [ ] Add support non-OpenAI large language models

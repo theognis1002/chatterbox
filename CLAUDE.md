@@ -17,7 +17,8 @@ src/
 ├── utils/
 │   └── promptLoader.ts # Loads system prompts from files
 └── prompts/
-    └── default-system-prompt.txt # AI behavior instructions
+    └── x-system-prompt.txt # AI behavior instructions
+    └── linkedin-system-prompt.txt # AI behavior instructions  
 ```
 
 ### Build System
@@ -101,14 +102,14 @@ src/
 {
   openrouterApiKey: string,           // OpenRouter API key
   model: string,                      // Default: openai/gpt-4.1
-  systemPrompt: string,               // Loaded from prompts/default-system-prompt.txt
+  systemPrompt: string,               // Loaded from prompts/linkedin-system-prompt.txt 
+  // & prompts/x-system-prompt.txt
   advancedSettings: {
     temperature: 0.5,                 // Response randomness
     maxTokens: 40,                   // Response length limit
     presencePenalty: 0.6,            // Topic diversity
     frequencyPenalty: 0.3,           // Repetition reduction
-    typingSpeed: 5,                  // ms per character
-    casualReplies: false             // Remove quotes/periods for casual tone
+    typingSpeed: 5                   // ms per character
   },
   templates: ReplyTemplate[],
   linkedinTemplates: ReplyTemplate[],
@@ -122,7 +123,7 @@ src/
 - **Single API Key Setup**: Simple OpenRouter API key configuration
 - **Extensive Model Selection**: Choose from 300+ models across multiple providers
 - **Tabbed Design**: General settings vs Templates management
-- **Advanced Settings**: Collapsible section with AI parameters including casual reply formatting
+- **Advanced Settings**: Collapsible section with AI parameters
 - **Template Management**: Add/edit/remove custom templates per platform
 - **Real-time Validation**: API key and model selection validation
 - **Model Descriptions**: Helpful descriptions for each model option
@@ -215,23 +216,7 @@ npm run package   # Full build pipeline
 - **Single API Key**: Streamlined setup with just one OpenRouter API key needed
 - **Universal Model Access**: GPT-5, Claude 4, Gemini Pro, Llama 3.1, and hundreds more models
 - **Parameter Normalization**: OpenRouter handles all model-specific parameter compatibility
-- **Enhanced Features**: Added casual reply formatting and improved UI
-
-## Future Enhancement Areas
-
-### Immediate Improvements
-- [ ] Unit and integration testing framework
-- [ ] Custom template creation UI improvements
-- [ ] Better error recovery mechanisms
-- [ ] Performance monitoring and optimization
-
-### Feature Expansions
-- [ ] Support for additional social platforms
-- [ ] Advanced model routing and fallback strategies
-- [ ] Reply history and analytics
-- [ ] Team/organization template sharing
-- [ ] Advanced content analysis and suggestions
-- [ ] Cost tracking and usage analytics for different providers
+- **Enhanced Features**: Improved UI and streamlined settings
 
 ## Development Environment Setup
 ```bash
@@ -240,10 +225,3 @@ npm install
 npm run dev          # Start development build
 # Load unpacked extension from dist/ in Chrome
 ```
-
-## Debugging Tips
-- Enable Chrome DevTools for extension pages
-- Check background service worker console for API errors
-- Use content script console for DOM injection issues
-- Verify manifest.json permissions for host access
-- Monitor network tab for OpenAI API request/response details
