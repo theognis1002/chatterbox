@@ -1,6 +1,6 @@
-# Contributing to Chatterbox
+# Contributing to ChatterBox
 
-Thank you for your interest in contributing to Chatterbox! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to ChatterBox! This document provides guidelines and instructions for contributing to the project.
 
 ## Development Setup
 

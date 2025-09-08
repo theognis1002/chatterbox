@@ -1,4 +1,4 @@
-// Background service worker for Chatterbox
+// Background service worker for ChatterBox
 import { GenerateReplyRequest, GenerateReplyResponse } from './types';
 import { loadDefaultSystemPrompt } from './utils/promptLoader';
 
@@ -31,7 +31,7 @@ class BackgroundService {
             this.defaultSystemPrompt = await loadDefaultSystemPrompt();
             this.setupMessageListener();
         } catch (error) {
-            console.error('Chatterbox: Failed to initialize background service:', error);
+            console.error('ChatterBox: Failed to initialize background service:', error);
         }
     }
 
@@ -101,7 +101,7 @@ class BackgroundService {
         const finalSystemPrompt = `${systemPrompt} ${template.prompt}`;
 
         if (tweetContent) {
-            var userPrompt = `Generate a reply to this tweet: "${tweetContent}"`;
+            var userPrompt = `Generate a reply to this post: "${tweetContent}"`;
         } else {
             var userPrompt = `Create a post"`;
         }

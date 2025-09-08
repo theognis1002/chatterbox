@@ -1,4 +1,4 @@
-# Chatterbox - Architecture & Development Notes
+# ChatterBox - Architecture & Development Notes
 
 ## Overview
 A Chrome extension that generates AI-powered contextual replies for X/Twitter and LinkedIn using OpenAI's API. The extension supports multiple reply templates and includes sophisticated content injection mechanisms for both platforms.
@@ -37,11 +37,14 @@ src/
 - **Error Handling**: Robust recovery from stale DOM references during typing
 
 ### LinkedIn Integration (`content_linkedin.ts`)
-- **Target**: Connection request "Add a note" modal
-- **Detection**: Targets `textarea#custom-message` specifically
+- **Dual Functionality**: 
+  - Connection request "Add a note" modal (`textarea#custom-message`)
+  - Post comment replies (contenteditable areas with comment-related attributes)
+- **Detection**: Multiple selectors for connection modals and post comment areas
 - **Name Extraction**: Captures recipient name from button aria-labels or profile headers
-- **Template System**: Pre-defined message templates with `{name}` placeholder replacement
-- **Modal Handling**: Injection into connection modal structure
+- **Template System**: Separate template sets for connections vs post replies
+- **Text Insertion**: Same robust character-by-character typing as X/Twitter with dynamic element re-discovery
+- **Modal & SPA Handling**: URL change monitoring and proper cleanup for LinkedIn's navigation
 
 ## Template System
 
@@ -61,9 +64,17 @@ src/
 ```
 
 ### LinkedIn Templates
-- Static message templates with name personalization
-- Currently 2 default connection messages
-- Stored separately as `linkedinTemplates` in Chrome storage
+- **Connection Templates**: Static message templates with `{name}` personalization (stored as `linkedinTemplates`)
+- **Post Reply Templates**: AI-generated contextual comments like X/Twitter (stored as `linkedinPostTemplates`)
+- **Default LinkedIn Post Templates (6 types)**:
+  ```typescript
+  'professional' - 💼 Professional comments
+  'insightful'   - 💡 Thoughtful insights  
+  'supportive'   - 👏 Encouraging responses
+  'question'     - ❓ Discussion starters
+  'networking'   - 🤝 Relationship building
+  'expertise'    - 🎓 Professional knowledge sharing
+  ```
 
 ## API Integration
 
@@ -78,7 +89,7 @@ src/
 // Chrome storage schema
 {
   apiKey: string,
-  model: string,              // Default: gpt-3.5-turbo
+  model: string,              // Default: gpt-4o
   systemPrompt: string,       // Loaded from prompts/default-system-prompt.txt
   advancedSettings: {
     temperature: 0.7,         // Response randomness
@@ -147,8 +158,14 @@ npm run package   # Full build pipeline
 - **Solution**: Retry logic with user-friendly error messages
 
 ### Stale DOM References  
-- **Problem**: React re-renders invalidate element references during typing
-- **Solution**: Dynamic element re-discovery in typing loop
+- **Problem**: React/SPA re-renders invalidate element references during typing
+- **Solution**: Robust character-by-character typing with dynamic element re-discovery
+  - Both X/Twitter and LinkedIn use the same approach:
+    1. Re-find editable element on each character iteration  
+    2. Validate element is still connected and editable
+    3. Handle contenteditable vs textarea/input differences
+    4. Graceful error handling if element disappears mid-typing
+    5. Proper focus management and cursor positioning
 
 ### Template Persistence
 - **Problem**: Templates not syncing across devices

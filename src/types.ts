@@ -1,4 +1,4 @@
-// Type definitions for Chatterbox
+// Type definitions for ChatterBox
 
 export interface ReplyTemplate {
     id: string;
@@ -30,6 +30,45 @@ export interface AdvancedSettings {
     frequencyPenalty: number;
     typingSpeed: number;
 }
+
+export const DEFAULT_LINKEDIN_POST_TEMPLATES: ReplyTemplate[] = [
+    {
+        id: 'professional',
+        name: 'Professional',
+        prompt: 'Generate a concise, professional comment that adds value to this LinkedIn post. Be respectful and constructive.',
+        icon: '💼'
+    },
+    {
+        id: 'insightful',
+        name: 'Insightful',
+        prompt: 'Generate a thoughtful comment that provides additional insight or perspective on this LinkedIn post. Be analytical and valuable.',
+        icon: '💡'
+    },
+    {
+        id: 'supportive',
+        name: 'Supportive',
+        prompt: 'Generate a supportive comment that encourages the author of this LinkedIn post. Be positive and motivating.',
+        icon: '👏'
+    },
+    {
+        id: 'question',
+        name: 'Question',
+        prompt: 'Generate a thoughtful question related to this LinkedIn post that encourages discussion. Be engaging and curious.',
+        icon: '❓'
+    },
+    {
+        id: 'networking',
+        name: 'Networking',
+        prompt: 'Generate a comment that helps build professional relationships, referencing shared experiences or interests from this LinkedIn post.',
+        icon: '🤝'
+    },
+    {
+        id: 'expertise',
+        name: 'Share Expertise',
+        prompt: 'Generate a comment that shares relevant professional expertise or experience related to this LinkedIn post topic.',
+        icon: '🎓'
+    }
+];
 
 export const DEFAULT_TEMPLATES: ReplyTemplate[] = [
     {

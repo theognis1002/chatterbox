@@ -1,13 +1,13 @@
-# Chatterbox Chrome Extension
+# ChatterBox Chrome Extension
 
 A Chrome extension that uses AI to generate contextual replies for X/Twitter and LinkedIn. Select from multiple templates to quickly craft engaging responses for social media interactions.
 
-![Chatterbox in action](./screenshots/main-demo.png)
-*Chatterbox generating a contextual reply using the Question template*
+![ChatterBox in action](./screenshots/main-demo.png)
+*ChatterBox generating a contextual reply using the Question template*
 
 ## Features
 
-- 🤖 AI-powered reply generation using OpenAI models (GPT-4, GPT-4o, GPT-3.5-turbo, and more)
+- 🤖 AI-powered reply generation using OpenAI models (GPT-5, GPT-4, GPT-4o, and more)
 - 📝 Multiple reply templates (Question, Funny Remark, Agreement, Add Insight)
 - 🎨 Clean UI that integrates seamlessly with X's interface
 - ⚡ Fast response generation

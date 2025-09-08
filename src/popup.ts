@@ -1,6 +1,6 @@
-// Popup script for Chatterbox
+// Popup script for ChatterBox
 import { loadDefaultSystemPrompt } from './utils/promptLoader';
-import { DEFAULT_TEMPLATES, ReplyTemplate } from './types';
+import { DEFAULT_TEMPLATES, DEFAULT_LINKEDIN_POST_TEMPLATES, ReplyTemplate } from './types';
 
 interface AdvancedSettings {
     temperature: number;
@@ -48,11 +48,17 @@ class PopupManager {
     private addLinkedInTemplateButton!: HTMLButtonElement;
     private resetLinkedInTemplatesButton!: HTMLButtonElement;
     private linkedinTemplates: ReplyTemplate[] = [];
+    private templatesLinkedInPostList!: HTMLElement;
+    private addLinkedInPostTemplateButton!: HTMLButtonElement;
+    private resetLinkedInPostTemplatesButton!: HTMLButtonElement;
+    private linkedinPostTemplates: ReplyTemplate[] = [];
     private typingSpeedInput!: HTMLInputElement;
     private xTemplatesSubTab!: HTMLButtonElement;
     private linkedinTemplatesSubTab!: HTMLButtonElement;
+    private linkedinPostTemplatesSubTab!: HTMLButtonElement;
     private templatesXContent!: HTMLElement;
     private templatesLinkedInContent!: HTMLElement;
+    private templatesLinkedInPostContent!: HTMLElement;
 
     constructor() {
         this.initializeElements();
@@ -86,11 +92,16 @@ class PopupManager {
         this.templatesLinkedInList = document.getElementById('templatesLinkedInList') as HTMLElement;
         this.addLinkedInTemplateButton = document.getElementById('addLinkedInTemplateButton') as HTMLButtonElement;
         this.resetLinkedInTemplatesButton = document.getElementById('resetLinkedInTemplatesButton') as HTMLButtonElement;
+        this.templatesLinkedInPostList = document.getElementById('templatesLinkedInPostList') as HTMLElement;
+        this.addLinkedInPostTemplateButton = document.getElementById('addLinkedInPostTemplateButton') as HTMLButtonElement;
+        this.resetLinkedInPostTemplatesButton = document.getElementById('resetLinkedInPostTemplatesButton') as HTMLButtonElement;
         this.xTemplatesSubTab = document.getElementById('xTemplatesSubTab') as HTMLButtonElement;
         this.linkedinTemplatesSubTab = document.getElementById('linkedinTemplatesSubTab') as HTMLButtonElement;
+        this.linkedinPostTemplatesSubTab = document.getElementById('linkedinPostTemplatesSubTab') as HTMLButtonElement;
         this.typingSpeedInput = document.getElementById('typingSpeed') as HTMLInputElement;
         this.templatesXContent = document.getElementById('templatesXContent') as HTMLElement;
         this.templatesLinkedInContent = document.getElementById('templatesLinkedInContent') as HTMLElement;
+        this.templatesLinkedInPostContent = document.getElementById('templatesLinkedInPostContent') as HTMLElement;
     }
 
     private async init() {
@@ -143,6 +154,7 @@ class PopupManager {
         // Sub-tab switching within Templates tab
         this.xTemplatesSubTab.addEventListener('click', () => this.switchTemplatesSubTab('x'));
         this.linkedinTemplatesSubTab.addEventListener('click', () => this.switchTemplatesSubTab('linkedin'));
+        this.linkedinPostTemplatesSubTab.addEventListener('click', () => this.switchTemplatesSubTab('linkedinPost'));
 
         // Template management for X
         this.addXTemplateButton.addEventListener('click', () => this.addTemplate('x'));
@@ -151,6 +163,10 @@ class PopupManager {
         // Template management for LinkedIn
         this.addLinkedInTemplateButton.addEventListener('click', () => this.addTemplate('linkedin'));
         this.resetLinkedInTemplatesButton.addEventListener('click', () => this.resetTemplates('linkedin'));
+
+        // Template management for LinkedIn Posts
+        this.addLinkedInPostTemplateButton.addEventListener('click', () => this.addTemplate('linkedinPost'));
+        this.resetLinkedInPostTemplatesButton.addEventListener('click', () => this.resetTemplates('linkedinPost'));
 
         // Advanced settings value display updates
         const temperatureValue = document.getElementById('temperatureValue');
@@ -322,7 +338,7 @@ class PopupManager {
 
     private async loadTemplates() {
         try {
-            const result = await chrome.storage.sync.get(['templates', 'linkedinTemplates']);
+            const result = await chrome.storage.sync.get(['templates', 'linkedinTemplates', 'linkedinPostTemplates']);
             this.xTemplates = result.templates || [...DEFAULT_TEMPLATES];
 
             this.linkedinTemplates = result.linkedinTemplates || [
@@ -339,6 +355,8 @@ class PopupManager {
                     icon: '🔗'
                 }
             ];
+
+            this.linkedinPostTemplates = result.linkedinPostTemplates || [...DEFAULT_LINKEDIN_POST_TEMPLATES];
 
             this.renderTemplates();
         } catch (error) {
@@ -360,9 +378,16 @@ class PopupManager {
             const templateEl = this.createTemplateElement(template, index, 'linkedin');
             this.templatesLinkedInList.appendChild(templateEl);
         });
+
+        // Render LinkedIn Post templates
+        this.templatesLinkedInPostList.innerHTML = '';
+        this.linkedinPostTemplates.forEach((template, index) => {
+            const templateEl = this.createTemplateElement(template, index, 'linkedinPost');
+            this.templatesLinkedInPostList.appendChild(templateEl);
+        });
     }
 
-    private createTemplateElement(template: ReplyTemplate, index: number, platform: 'x' | 'linkedin'): HTMLElement {
+    private createTemplateElement(template: ReplyTemplate, index: number, platform: 'x' | 'linkedin' | 'linkedinPost'): HTMLElement {
         const div = document.createElement('div');
         div.className = 'template-item';
         div.innerHTML = `
@@ -427,53 +452,66 @@ class PopupManager {
         return div;
     }
 
-    private async updateTemplate(index: number, template: ReplyTemplate, platform: 'x' | 'linkedin') {
+    private async updateTemplate(index: number, template: ReplyTemplate, platform: 'x' | 'linkedin' | 'linkedinPost') {
         if (platform === 'x') {
             this.xTemplates[index] = template;
-        } else {
+        } else if (platform === 'linkedin') {
             this.linkedinTemplates[index] = template;
+        } else if (platform === 'linkedinPost') {
+            this.linkedinPostTemplates[index] = template;
         }
         await this.saveTemplates();
         this.renderTemplates();
     }
 
-    private async deleteTemplate(index: number, platform: 'x' | 'linkedin') {
+    private async deleteTemplate(index: number, platform: 'x' | 'linkedin' | 'linkedinPost') {
         if (platform === 'x') {
             this.xTemplates.splice(index, 1);
-        } else {
+        } else if (platform === 'linkedin') {
             this.linkedinTemplates.splice(index, 1);
+        } else if (platform === 'linkedinPost') {
+            this.linkedinPostTemplates.splice(index, 1);
         }
         await this.saveTemplates();
         this.renderTemplates();
     }
 
-    private async addTemplate(platform: 'x' | 'linkedin') {
+    private async addTemplate(platform: 'x' | 'linkedin' | 'linkedinPost') {
         const newTemplate: ReplyTemplate = {
             id: `custom-${Date.now()}`,
-            name: platform === 'x' ? 'New Template' : 'New Message',
-            prompt: platform === 'x' ? 'Enter your custom prompt here' : 'Enter your message here',
-            icon: platform === 'x' ? '📝' : '🔗'
+            name: platform === 'x' ? 'New Template' : platform === 'linkedin' ? 'New Message' : 'New Post Template',
+            prompt: platform === 'x' ? 'Enter your custom prompt here' : platform === 'linkedin' ? 'Enter your message here' : 'Enter your LinkedIn post comment prompt here',
+            icon: platform === 'x' ? '📝' : platform === 'linkedin' ? '🔗' : '💼'
         };
 
         if (platform === 'x') {
             this.xTemplates.push(newTemplate);
-        } else {
+        } else if (platform === 'linkedin') {
             this.linkedinTemplates.push(newTemplate);
+        } else if (platform === 'linkedinPost') {
+            this.linkedinPostTemplates.push(newTemplate);
         }
 
         await this.saveTemplates();
         this.renderTemplates();
 
         // Scroll to the new template list bottom
-        const listEl = platform === 'x' ? this.templatesXList : this.templatesLinkedInList;
+        let listEl: HTMLElement;
+        if (platform === 'x') {
+            listEl = this.templatesXList;
+        } else if (platform === 'linkedin') {
+            listEl = this.templatesLinkedInList;
+        } else {
+            listEl = this.templatesLinkedInPostList;
+        }
         listEl.scrollTop = listEl.scrollHeight;
     }
 
-    private async resetTemplates(platform: 'x' | 'linkedin') {
+    private async resetTemplates(platform: 'x' | 'linkedin' | 'linkedinPost') {
         if (confirm('Are you sure you want to reset templates to default?')) {
             if (platform === 'x') {
                 this.xTemplates = [...DEFAULT_TEMPLATES];
-            } else {
+            } else if (platform === 'linkedin') {
                 this.linkedinTemplates = [
                     {
                         id: 'connect1',
@@ -488,6 +526,8 @@ class PopupManager {
                         icon: '🔗'
                     }
                 ];
+            } else if (platform === 'linkedinPost') {
+                this.linkedinPostTemplates = [...DEFAULT_LINKEDIN_POST_TEMPLATES];
             }
             await this.saveTemplates();
             this.renderTemplates();
@@ -496,7 +536,11 @@ class PopupManager {
 
     private async saveTemplates() {
         try {
-            await chrome.storage.sync.set({ templates: this.xTemplates, linkedinTemplates: this.linkedinTemplates });
+            await chrome.storage.sync.set({
+                templates: this.xTemplates,
+                linkedinTemplates: this.linkedinTemplates,
+                linkedinPostTemplates: this.linkedinPostTemplates
+            });
         } catch (error) {
             console.error('Error saving templates:', error);
             this.showStatus('Error saving templates', 'error');
@@ -516,14 +560,16 @@ class PopupManager {
         this.showStatus('Settings saved!', 'success');
     }
 
-    private switchTemplatesSubTab(tab: 'x' | 'linkedin') {
+    private switchTemplatesSubTab(tab: 'x' | 'linkedin' | 'linkedinPost') {
         // Update tab buttons
         this.xTemplatesSubTab.classList.toggle('active', tab === 'x');
         this.linkedinTemplatesSubTab.classList.toggle('active', tab === 'linkedin');
+        this.linkedinPostTemplatesSubTab.classList.toggle('active', tab === 'linkedinPost');
 
         // Update content visibility
         this.templatesXContent.style.display = tab === 'x' ? 'block' : 'none';
         this.templatesLinkedInContent.style.display = tab === 'linkedin' ? 'block' : 'none';
+        this.templatesLinkedInPostContent.style.display = tab === 'linkedinPost' ? 'block' : 'none';
     }
 }
 

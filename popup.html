@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>X Reply Bot Settings</title>
+  <title>ChatterBox Settings</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
     <div class="popup-header">
       <h1>
         <span class="logo"><img src="icons/icon48.png" alt="X Reply Bot Icon" width="48" height="48"></span>
-        X Reply Bot
+        ChatterBox
       </h1>
     </div>
 
@@ -41,10 +41,10 @@
             <option value="gpt-4">GPT-4</option>
             <option value="gpt-4-turbo">GPT-4 Turbo</option>
             <option value="gpt-4-turbo-2024-04-09">GPT-4 Turbo (2024-04-09)</option>
-            <option value="gpt-4o">GPT-4o</option>
+            <option value="gpt-4o" selected>GPT-4o</option>
             <option value="gpt-4.1">GPT-4.1</option>
             <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
-            <option value="gpt-3.5-turbo" selected>GPT-3.5 Turbo</option>
+            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
           </select>
         </div>
 
@@ -158,6 +158,7 @@
         <div class="tab-buttons sub-tab-buttons">
           <button id="xTemplatesSubTab" class="tab-button small active">X Replies</button>
           <button id="linkedinTemplatesSubTab" class="tab-button small">LinkedIn Connect</button>
+          <button id="linkedinPostTemplatesSubTab" class="tab-button small">LinkedIn Posts</button>
         </div>
 
         <!-- X Templates section -->
@@ -175,6 +176,15 @@
             <div class="templates-list" id="templatesLinkedInList"></div>
             <button id="addLinkedInTemplateButton" class="add-button">Add Message</button>
             <button id="resetLinkedInTemplatesButton" class="reset-button">Reset to Defaults</button>
+          </div>
+        </div>
+
+        <!-- LinkedIn Post Comments section -->
+        <div id="templatesLinkedInPostContent" class="sub-tab-content">
+          <div class="templates-section">
+            <div class="templates-list" id="templatesLinkedInPostList"></div>
+            <button id="addLinkedInPostTemplateButton" class="add-button">Add Template</button>
+            <button id="resetLinkedInPostTemplatesButton" class="reset-button">Reset to Defaults</button>
           </div>
         </div>
       </div>

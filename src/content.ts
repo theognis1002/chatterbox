@@ -1,7 +1,7 @@
-// Content script for Chatterbox
+// Content script for ChatterBox
 import { DEFAULT_TEMPLATES, GenerateReplyRequest, GenerateReplyResponse, ReplyTemplate } from './types';
 
-class Chatterbox {
+class ChatterBox {
     private templates: ReplyTemplate[] = DEFAULT_TEMPLATES;
     private buttonsInjected = new WeakSet<HTMLElement>();
     private observer: MutationObserver | null = null;
@@ -157,13 +157,11 @@ class Chatterbox {
         // Find the toolbar
         const toolbar = this.findToolbar(textArea);
         if (!toolbar) {
-            console.log('Chatterbox: Could not find toolbar');
             return;
         }
 
         // Check if buttons already exist in this area
         if (toolbar.parentElement?.querySelector('.reply-bot-container')) {
-            console.log('Chatterbox: Buttons already exist in this area');
             return;
         }
 
@@ -176,7 +174,6 @@ class Chatterbox {
         // Mark this text area as having buttons
         this.buttonsInjected.add(textArea);
 
-        console.log('Chatterbox: Buttons injected successfully!');
     }
 
     private findToolbar(textArea: HTMLElement): HTMLElement | null {
@@ -270,27 +267,25 @@ class Chatterbox {
 
         // Check if the text area is still in the document
         if (!currentTextArea || !currentTextArea.isConnected) {
-            console.log('Chatterbox: Text area is stale, trying to find it again.');
             const buttonContainer = button.closest('.reply-bot-container');
             const toolbar = buttonContainer?.previousElementSibling as HTMLElement;
 
             if (toolbar && toolbar.getAttribute('data-testid') === 'toolBar') {
                 const newTextArea = this.findAssociatedTextArea(toolbar);
                 if (newTextArea) {
-                    console.log('Chatterbox: Found new text area.');
                     currentTextArea = newTextArea;
                 } else {
-                    console.warn('Chatterbox: Could not re-find associated text area.');
+                    console.warn('ChatterBox: Could not re-find associated text area.');
                     currentTextArea = null;
                 }
             } else {
-                console.warn('Chatterbox: Could not find toolbar to re-find text area.');
+                console.warn('ChatterBox: Could not find toolbar to re-find text area.');
                 currentTextArea = null;
             }
         }
 
         if (!currentTextArea) {
-            alert('Chatterbox: Could not find the reply text area. Please try again.');
+            alert('ChatterBox: Could not find the reply text area. Please try again.');
             button.innerHTML = originalText;
             button.disabled = false;
             return;
@@ -325,7 +320,7 @@ class Chatterbox {
                 // Check if it's an extension context invalidated error
                 if (error instanceof Error && error.message.includes('Extension context invalidated')) {
                     // Show user-friendly message
-                    alert('The extension was updated. Please refresh the page to continue using Chatterbox.');
+                    alert('The extension was updated. Please refresh the page to continue using ChatterBox.');
                     throw error;
                 }
                 // Re-throw other errors
@@ -381,7 +376,7 @@ class Chatterbox {
         // Find the tweet article we're replying to
         const article = document.querySelector('article[data-testid="tweet"]');
         if (!article) {
-            console.warn('Chatterbox: Could not find tweet article');
+            console.warn('ChatterBox: Could not find tweet article');
             return;
         }
 
@@ -389,7 +384,7 @@ class Chatterbox {
         const likeButton = article.querySelector('[data-testid="like"]');
 
         if (!likeButton) {
-            console.warn('Chatterbox: Could not find like button');
+            console.warn('ChatterBox: Could not find like button');
             return;
         }
 
@@ -432,7 +427,7 @@ class Chatterbox {
     private async insertReply(reply: string, textArea: HTMLElement) {
         // Validate reply
         if (!reply || reply.trim() === '') {
-            console.error('Chatterbox: Cannot insert empty reply');
+            console.error('ChatterBox: Cannot insert empty reply');
             return;
         }
 
@@ -469,14 +464,14 @@ class Chatterbox {
         let editableElement = findEditable();
 
         if (!editableElement) {
-            console.warn('Chatterbox: Editable element was disconnected during typing, attempting to recover.');
+            console.warn('ChatterBox: Editable element was disconnected during typing, attempting to recover.');
             // Try once more after a short wait in case the framework is re-rendering.
             await new Promise(r => setTimeout(r, 30));
             editableElement = findEditable();
         }
         if (!editableElement) {
-            console.warn('Chatterbox: Could not recover editable element. Aborting reply typing.');
-            alert('Chatterbox: Could not continue typing because the reply box disappeared.');
+            console.warn('ChatterBox: Could not recover editable element. Aborting reply typing.');
+            alert('ChatterBox: Could not continue typing because the reply box disappeared.');
             return; // Exit gracefully
         }
 
@@ -492,8 +487,8 @@ class Chatterbox {
             // Re-find the element on each iteration to ensure we have a fresh reference.
             editableElement = findEditable();
             if (!editableElement) {
-                console.warn('Chatterbox: Editable element was disconnected during typing.');
-                alert('Chatterbox: Reply cancelled because the text box was closed.');
+                console.warn('ChatterBox: Editable element was disconnected during typing.');
+                alert('ChatterBox: Reply cancelled because the text box was closed.');
                 return; // Exit gracefully
             }
 
@@ -542,7 +537,7 @@ class Chatterbox {
 
 // Initialize the bot when the page loads
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => new Chatterbox());
+    document.addEventListener('DOMContentLoaded', () => new ChatterBox());
 } else {
-    new Chatterbox();
+    new ChatterBox();
 } 
