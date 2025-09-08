@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Social Reply Bot",
+    "name": "Chatterbox",
     "version": "1.0.0",
     "description": "AI-powered contextual reply generator for X & LinkedIn",
     "permissions": [

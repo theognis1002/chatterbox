@@ -1,12 +1,12 @@
 {
-    "name": "twitter-reply-bot",
+    "name": "chatterbox",
     "version": "1.0.0",
-    "description": "Chrome extension for generating AI-powered X replies",
+    "description": "Chrome extension for generating AI-powered social media replies",
     "scripts": {
         "build": "webpack --mode production",
         "dev": "webpack --mode development --watch",
         "clean": "rm -rf dist",
-        "zip": "cd dist && zip -r ../x-reply-bot.zip . && cd ..",
+        "zip": "cd dist && zip -r ../chatterbox.zip . && cd ..",
         "package": "npm run clean && npm run build && npm run zip"
     },
     "dependencies": {

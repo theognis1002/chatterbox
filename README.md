@@ -1,9 +1,9 @@
-# X/Twitter Reply Bot Chrome Extension
+# Chatterbox Chrome Extension
 
-A Chrome extension that uses AI to generate contextual replies for X/Twitter comments. Select from different templates like questions, funny remarks, agreements, or insights to quickly craft engaging responses.
+A Chrome extension that uses AI to generate contextual replies for X/Twitter and LinkedIn. Select from multiple templates to quickly craft engaging responses for social media interactions.
 
-![X Reply Bot in action](./screenshots/main-demo.png)
-*X Reply Bot generating a contextual reply using the Question template*
+![Chatterbox in action](./screenshots/main-demo.png)
+*Chatterbox generating a contextual reply using the Question template*
 
 ## Features
 
@@ -35,8 +35,8 @@ A Chrome extension that uses AI to generate contextual replies for X/Twitter com
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/yourusername/twitter-reply-bot.git
-cd twitter-reply-bot
+git clone https://github.com/yourusername/chatterbox.git
+cd chatterbox
 ```
 
 2. Install dependencies:
@@ -91,20 +91,25 @@ npm run build
 ```
 reply-bot/
 ├── src/
-│   ├── background.ts    # Service worker for API calls
-│   ├── content.ts       # Content script for X integration
-│   ├── popup.ts         # Extension popup logic
-│   ├── types.ts         # TypeScript type definitions
-│   ├── utils/          # Utility functions
-│   ├── prompts/        # System prompts
-│   └── styles.css      # Extension styles
-├── icons/              # Extension icons
-├── dist/              # Built files (generated)
-├── manifest.json      # Chrome extension manifest
-├── popup.html         # Extension popup HTML
-├── package.json       # Node dependencies
-├── tsconfig.json      # TypeScript config
-└── webpack.config.js  # Webpack bundler config
+│   ├── background.ts        # Service worker for API calls
+│   ├── content.ts          # Content script for X/Twitter integration
+│   ├── content_linkedin.ts # Content script for LinkedIn integration
+│   ├── popup.ts            # Extension popup logic
+│   ├── types.ts            # TypeScript type definitions & templates
+│   ├── utils/              # Utility functions
+│   │   └── promptLoader.ts # System prompt file loader
+│   ├── prompts/            # AI system prompts
+│   │   └── default-system-prompt.txt
+│   └── styles.css          # Extension styles with dark mode
+├── icons/                  # Extension icons
+├── dist/                   # Built files (generated)
+├── manifest.json           # Chrome extension manifest
+├── popup.html              # Extension popup HTML
+├── package.json            # Node dependencies
+├── tsconfig.json           # TypeScript config
+├── webpack.config.js       # Webpack bundler config
+├── CLAUDE.md              # Architecture documentation
+└── README.md              # This file
 ```
 
 ### Development Mode
@@ -123,12 +128,20 @@ npm run build
 
 ## Templates
 
-The extension includes 4 default templates:
+The extension includes 10 default X/Twitter templates:
 
-1. **Question** - Generates thoughtful questions to engage with the tweet
-2. **Funny Remark** - Creates witty and humorous responses
-3. **Agreement** - Produces supportive replies that build on the original point
-4. **Add Insight** - Generates responses that add valuable perspective
+1. **Question** (❓) - Generates thoughtful questions to engage with the tweet
+2. **Funny** (😄) - Creates witty and humorous responses  
+3. **Agree** (👍) - Produces supportive replies that build on the original point
+4. **Sarcastic** (🤨) - Generates clever sarcastic responses
+5. **Insightful** (💡) - Adds valuable insight or technical perspective
+6. **Disagree** (👎) - Respectful disagreement responses
+7. **Promote** (🚀) - Promotes wraithscan.com security scanning service
+8. **Congrats** (🎉) - Congratulatory responses
+9. **Respond** (💬) - General positive responses
+10. **Encourage** (💪) - Encouraging and supportive messages
+
+Plus LinkedIn connection message templates for personalized outreach.
 
 ## Privacy & Security
 
@@ -156,13 +169,16 @@ The extension includes 4 default templates:
 
 ## Future Enhancements
 
-- [ ] Custom template creation
-- [ ] Reply history
+- [ ] Custom template creation UI improvements
+- [ ] Reply history and analytics  
 - [ ] Sentiment analysis
 - [ ] Multi-language support
 - [ ] Thread continuation support
 - [ ] Template-specific system prompts
 - [ ] Custom model parameter presets
+- [ ] Support for additional social platforms
+- [ ] Non-OpenAI LLM integration
+- [ ] Team/organization template sharing
 
 ## Contributing
 
