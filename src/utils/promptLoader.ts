@@ -8,10 +8,11 @@ export async function loadDefaultSystemPrompt(): Promise<string> {
         if (!response.ok) {
             throw new Error('Failed to load system prompt');
         }
-        return await response.text();
+        const basePrompt = await response.text();
+        return `${basePrompt}\n\nIMPORTANT: Only provide the final response. Do not include any thinking, checklists, validation steps, or meta-commentary. Generate the reply directly.`;
     } catch (error) {
         console.error('Error loading system prompt:', error);
         // Fallback to a basic prompt if file loading fails
-        return 'You are a tech-focused X user. Generate concise, engaging replies.';
+        return 'Generate concise, engaging replies.\n\nIMPORTANT: Only provide the final response. Do not include any thinking, checklists, validation steps, or meta-commentary. Generate the reply directly.';
     }
 } 

@@ -1,14 +1,14 @@
 # ChatterBox - Architecture & Development Notes
 
 ## Overview
-A Chrome extension that generates AI-powered contextual replies for X/Twitter and LinkedIn using OpenAI's API. The extension supports multiple reply templates and includes sophisticated content injection mechanisms for both platforms.
+A Chrome extension that generates AI-powered contextual replies for X/Twitter and LinkedIn using OpenRouter. The extension provides access to 300+ AI models from OpenAI, Anthropic, Google, Meta, and other providers through a single unified API, multiple reply templates, and sophisticated content injection mechanisms for both platforms.
 
 ## Key Architecture Components
 
 ### Core Files Structure
 ```
 src/
-├── background.ts        # Service worker - handles OpenAI API calls
+├── background.ts        # Service worker - handles OpenRouter API calls
 ├── content.ts          # X/Twitter content script
 ├── content_linkedin.ts # LinkedIn content script  
 ├── popup.ts           # Extension popup UI logic
@@ -57,7 +57,6 @@ src/
 'sarcastic'   - 🤨 Clever sarcasm
 'insight'     - 💡 Technical insights
 'disagree'    - 👎 Respectful disagreement
-'promote'     - 🚀 Promotes wraithscan.com
 'congrats'    - 🎉 Congratulatory
 'response'    - 💬 General responses
 'encourage'   - 💪 Encouraging messages
@@ -78,38 +77,55 @@ src/
 
 ## API Integration
 
-### OpenAI Communication
-- **Background Script**: All API calls handled in service worker for security
+### OpenRouter Integration
+- **Unified API Access**: Single endpoint for 300+ models from multiple providers
+- **Model Variety**: Access to models from OpenAI, Anthropic, Google, Meta, Mistral, DeepSeek, and more
+- **Simplified Parameters**: OpenRouter normalizes all models to use standard `max_tokens` parameter
+- **Background Script**: All API calls handled in service worker for security  
 - **Message Passing**: Chrome runtime messaging between content scripts and background
 - **Retry Logic**: Built-in retry mechanism for connection failures
 - **Error Handling**: User-friendly error messages for API failures
+
+### Available Models
+- **OpenAI**: GPT-5, GPT-4.1, GPT-4o, GPT-4o Mini, GPT-4 Turbo, GPT-3.5 Turbo
+- **Anthropic**: Claude 3.5 Sonnet, Claude 3 Haiku, Claude 4
+- **Google**: Gemini Pro, Gemini Pro 1.5
+- **Meta**: Llama 3.1 (8B, 70B, 405B variants)
+- **Mistral**: Mixtral 8x7B mixture of experts
+- **DeepSeek**: DeepSeek Chat model
+- **Perplexity**: Sonar models with web search capabilities
 
 ### Settings Storage
 ```typescript
 // Chrome storage schema
 {
-  apiKey: string,
-  model: string,              // Default: gpt-4o
-  systemPrompt: string,       // Loaded from prompts/default-system-prompt.txt
+  openrouterApiKey: string,           // OpenRouter API key
+  model: string,                      // Default: openai/gpt-4.1
+  systemPrompt: string,               // Loaded from prompts/default-system-prompt.txt
   advancedSettings: {
-    temperature: 0.7,         // Response randomness
-    maxTokens: 50,           // Response length limit
-    presencePenalty: 0.6,    // Topic diversity
-    frequencyPenalty: 0.3,   // Repetition reduction
-    typingSpeed: 5           // ms per character
+    temperature: 0.5,                 // Response randomness
+    maxTokens: 40,                   // Response length limit
+    presencePenalty: 0.6,            // Topic diversity
+    frequencyPenalty: 0.3,           // Repetition reduction
+    typingSpeed: 5,                  // ms per character
+    casualReplies: false             // Remove quotes/periods for casual tone
   },
   templates: ReplyTemplate[],
-  linkedinTemplates: ReplyTemplate[]
+  linkedinTemplates: ReplyTemplate[],
+  linkedinPostTemplates: ReplyTemplate[]
 }
 ```
 
 ## UI Components
 
 ### Popup Interface
+- **Single API Key Setup**: Simple OpenRouter API key configuration
+- **Extensive Model Selection**: Choose from 300+ models across multiple providers
 - **Tabbed Design**: General settings vs Templates management
-- **Advanced Settings**: Collapsible section with AI parameters
+- **Advanced Settings**: Collapsible section with AI parameters including casual reply formatting
 - **Template Management**: Add/edit/remove custom templates per platform
 - **Real-time Validation**: API key and model selection validation
+- **Model Descriptions**: Helpful descriptions for each model option
 
 ### Injected Buttons
 - **Styling**: Matches platform design language
@@ -135,16 +151,23 @@ npm run package   # Full build pipeline
 
 ## Technical Considerations
 
+### API Simplification
+- **Unified Parameter Handling**: OpenRouter normalizes all models to use standard `max_tokens` parameter
+- **No Model-Specific Compatibility**: OpenRouter handles all parameter compatibility internally
+- **Simplified Integration**: Single API endpoint and parameter format for all 300+ models
+- **Future-Proof Design**: New models automatically available through OpenRouter without code changes
+
 ### DOM Manipulation Challenges
 - **X/Twitter**: Heavy use of React/virtual DOM requires careful element detection
 - **LinkedIn**: SPA navigation requires URL change monitoring and state cleanup
 - **Timing Issues**: MutationObserver and async DOM operations need retry logic
 
 ### Security & Privacy
-- **API Keys**: Stored securely in Chrome sync storage
+- **API Keys**: Single OpenRouter API key stored securely in Chrome sync storage
 - **Permissions**: Minimal required permissions (`storage`, `activeTab`)
 - **Host Permissions**: Limited to X/Twitter and LinkedIn domains
-- **No Data Collection**: All processing happens client-side or with OpenAI
+- **No Data Collection**: All processing happens client-side or with OpenRouter
+- **Provider Transparency**: OpenRouter provides transparent access to multiple AI providers
 
 ### Performance Optimizations
 - **WeakSet Tracking**: Prevents duplicate button injection
@@ -171,6 +194,29 @@ npm run package   # Full build pipeline
 - **Problem**: Templates not syncing across devices
 - **Solution**: Chrome storage.sync API usage
 
+### Contextual Content Detection (Critical for Multi-Post Feeds)
+- **Problem**: Content detection methods that use global DOM queries will return stale/wrong post content when users scroll and interact with different posts
+- **Root Cause**: Using `document.querySelectorAll()` globally returns the first match found, not the specific post being interacted with
+- **Solution**: **ALWAYS** use contextual content detection for social media platforms:
+  1. **Pass input element context**: Methods like `getPostContent()` must receive the specific input/reply element being used
+  2. **Walk up DOM tree**: From the input element, traverse up to find the parent post container (e.g., `article`, `[role="listitem"]`, etc.)
+  3. **Scoped content search**: Search for post content only within the identified post container, not globally
+  4. **Platform-specific containers**: Each platform has different post container patterns:
+     - X/Twitter: `article[data-testid="tweet"]`
+     - LinkedIn: `[role="listitem"]`, `.feed-shared-update-v2`, `[componentkey*="activity"]`
+  5. **Robust fallback**: Keep global search as fallback, but prioritize contextual detection
+- **Example Fix**: LinkedIn `getLinkedInPostContent(inputElement)` walks up from comment input to find specific post container, then searches within that scope
+- **Why Critical**: Without this approach, users get incorrect AI responses based on wrong post content, especially in infinite scroll feeds
+
+## Recent Major Updates
+
+### OpenRouter-Only Architecture (v1.1)
+- **Simplified Integration**: Switched to OpenRouter exclusively for access to 300+ AI models
+- **Single API Key**: Streamlined setup with just one OpenRouter API key needed
+- **Universal Model Access**: GPT-5, Claude 4, Gemini Pro, Llama 3.1, and hundreds more models
+- **Parameter Normalization**: OpenRouter handles all model-specific parameter compatibility
+- **Enhanced Features**: Added casual reply formatting and improved UI
+
 ## Future Enhancement Areas
 
 ### Immediate Improvements
@@ -181,10 +227,11 @@ npm run package   # Full build pipeline
 
 ### Feature Expansions
 - [ ] Support for additional social platforms
-- [ ] Non-OpenAI LLM integration
+- [ ] Advanced model routing and fallback strategies
 - [ ] Reply history and analytics
 - [ ] Team/organization template sharing
 - [ ] Advanced content analysis and suggestions
+- [ ] Cost tracking and usage analytics for different providers
 
 ## Development Environment Setup
 ```bash

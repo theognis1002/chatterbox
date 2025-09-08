@@ -39,14 +39,25 @@ class ChatterBoxLinkedIn {
     }
 
     private async init() {
-        // Load custom LinkedIn templates stored under a dedicated key.
-        const result = await chrome.storage.sync.get(['linkedinTemplates', 'linkedinPostTemplates']);
-        if (result.linkedinTemplates && Array.isArray(result.linkedinTemplates)) {
-            this.templates = result.linkedinTemplates;
+        // Check if chrome APIs are available
+        if (typeof chrome === 'undefined' || !chrome.storage || !chrome.runtime) {
+            console.error('ChatterBox LinkedIn: Chrome extension APIs not available');
+            return;
         }
-        // Load LinkedIn post reply templates
-        if (result.linkedinPostTemplates && Array.isArray(result.linkedinPostTemplates)) {
-            this.postReplyTemplates = result.linkedinPostTemplates;
+
+        try {
+            // Load custom LinkedIn templates stored under a dedicated key.
+            const result = await chrome.storage.sync.get(['linkedinTemplates', 'linkedinPostTemplates']);
+            if (result.linkedinTemplates && Array.isArray(result.linkedinTemplates)) {
+                this.templates = result.linkedinTemplates;
+            }
+            // Load LinkedIn post reply templates
+            if (result.linkedinPostTemplates && Array.isArray(result.linkedinPostTemplates)) {
+                this.postReplyTemplates = result.linkedinPostTemplates;
+            }
+        } catch (error) {
+            console.error('ChatterBox LinkedIn: Failed to load templates from storage:', error);
+            // Continue with default templates if storage fails
         }
 
         this.captureRecipientNameOnClicks();
@@ -515,21 +526,29 @@ class ChatterBoxLinkedIn {
         const button = event.currentTarget as HTMLButtonElement;
         const originalText = button.textContent;
 
+        // Check if chrome APIs are available before proceeding
+        if (typeof chrome === 'undefined' || !chrome.runtime) {
+            alert('Extension error: Please refresh the page and try again.');
+            return;
+        }
+
         try {
             // Show loading state
             button.textContent = '⏳ Generating...';
             button.disabled = true;
 
-            // Get the post content we're commenting on
-            const postContent = this.getLinkedInPostContent();
+            // Get the post content and container context
+            const postContext = this.getLinkedInPostContext(inputElement);
 
-            if (!postContent) {
-                throw new Error('Could not find post content');
+            if (!postContext.content) {
+                throw new Error('Could not find post content to reply to. Try clicking directly in the comment box first.');
             }
+
+            console.log('ChatterBox LinkedIn: Generating reply for post:', postContext.content.substring(0, 100) + '...');
 
             // Send request to background script
             const request = {
-                tweetContent: postContent, // Using same interface as X for now
+                tweetContent: postContext.content, // Using same interface as X for now
                 template
             };
 
@@ -550,8 +569,10 @@ class ChatterBoxLinkedIn {
                 throw new Error('Generated reply is empty. Please try again.');
             }
 
-            // Insert the generated reply
-            await this.insertPostReply(response.reply, inputElement);
+            console.log('ChatterBox LinkedIn: Generated reply:', response.reply);
+
+            // Insert the generated reply with post context for accurate input finding
+            await this.insertPostReply(response.reply, inputElement, postContext.container);
 
             // Reset button
             button.textContent = originalText;
@@ -565,7 +586,7 @@ class ChatterBoxLinkedIn {
                 errorMessage = error.message;
             }
 
-            alert(`Error: ${errorMessage}`);
+            alert(`ChatterBox Error: ${errorMessage}`);
 
             // Reset button
             if (button) {
@@ -578,7 +599,7 @@ class ChatterBoxLinkedIn {
     /**
      * Inserts the generated reply into LinkedIn comment input using robust typing simulation
      */
-    private async insertPostReply(reply: string, inputElement: HTMLElement) {
+    private async insertPostReply(reply: string, inputElement: HTMLElement, postContainer?: HTMLElement | null) {
         if (!reply || reply.trim() === '') {
             console.error('LinkedIn: Cannot insert empty reply');
             return;
@@ -608,24 +629,53 @@ class ChatterBoxLinkedIn {
                 return inputElement;
             }
 
-            // 2. If the currently focused element is a comment input, use that
-            if (isEditableCommentInput(document.activeElement)) {
-                return document.activeElement as HTMLElement;
+            // 2. If we have post container context, look for comment inputs within that specific post
+            if (postContainer) {
+                const selectors = [
+                    '[aria-label="Text editor for creating comment"]',
+                    '.tiptap.ProseMirror[contenteditable="true"]',
+                    '[data-testid="ui-core-tiptap-text-editor-wrapper"] [contenteditable="true"]',
+                    'textarea[placeholder*="comment" i]',
+                    '[contenteditable="true"][aria-label*="comment" i]'
+                ];
+
+                for (const selector of selectors) {
+                    const candidate = postContainer.querySelector<HTMLElement>(selector);
+                    if (candidate && isEditableCommentInput(candidate)) {
+                        return candidate;
+                    }
+                }
             }
 
-            // 3. Look for LinkedIn comment inputs in the page
-            const selectors = [
-                '[aria-label="Text editor for creating comment"]',
-                '.tiptap.ProseMirror[contenteditable="true"]',
-                '[data-testid="ui-core-tiptap-text-editor-wrapper"] [contenteditable="true"]',
-                'textarea[placeholder*="comment" i]',
-                '[contenteditable="true"][aria-label*="comment" i]'
-            ];
+            // 3. If the currently focused element is a comment input, use that (but only if it's in the right post)
+            if (isEditableCommentInput(document.activeElement)) {
+                const activeElement = document.activeElement as HTMLElement;
+                // If we have post container context, verify the focused element is within it
+                if (postContainer) {
+                    if (postContainer.contains(activeElement)) {
+                        return activeElement;
+                    }
+                } else {
+                    // No post container context, use focused element as fallback
+                    return activeElement;
+                }
+            }
 
-            for (const selector of selectors) {
-                const candidate = document.querySelector<HTMLElement>(selector);
-                if (candidate && isEditableCommentInput(candidate)) {
-                    return candidate;
+            // 4. Fallback: Look for LinkedIn comment inputs globally (least preferred)
+            if (!postContainer) {
+                const selectors = [
+                    '[aria-label="Text editor for creating comment"]',
+                    '.tiptap.ProseMirror[contenteditable="true"]',
+                    '[data-testid="ui-core-tiptap-text-editor-wrapper"] [contenteditable="true"]',
+                    'textarea[placeholder*="comment" i]',
+                    '[contenteditable="true"][aria-label*="comment" i]'
+                ];
+
+                for (const selector of selectors) {
+                    const candidate = document.querySelector<HTMLElement>(selector);
+                    if (candidate && isEditableCommentInput(candidate)) {
+                        return candidate;
+                    }
                 }
             }
 
@@ -749,95 +799,192 @@ class ChatterBoxLinkedIn {
     }
 
     /**
-     * Gets the LinkedIn post content we're commenting on
+     * Gets the LinkedIn post context (content + container) we're commenting on
      */
-    private getLinkedInPostContent(): string | null {
-        // Updated LinkedIn post content selectors based on the provided HTML structure
-        const selectors = [
-            // Primary selector for post commentary - matches the data-view-name="feed-commentary"
-            '[data-view-name="feed-commentary"]',
-            // Look for expandable text boxes (like in your HTML)
-            '[data-testid="expandable-text-box"]',
-            // Alternative selectors for different LinkedIn versions
-            '.feed-shared-text__text-view',
-            '.feed-shared-article__description',
-            '.feed-shared-text',
-            // Generic content selectors
-            '[data-test-id="main-feed-activity-card"] .break-words',
-            '.feed-shared-update-v2__commentary .break-words',
-            // Look for any element with substantial text content in posts
-            'article .break-words',
-            '[role="listitem"] .break-words'
-        ];
+    private getLinkedInPostContext(inputElement?: HTMLElement): { content: string | null; container: HTMLElement | null } {
+        // If we have the input element context, try to find the specific post being replied to
+        if (inputElement) {
+            // Walk up the DOM from the comment input to find the post container
+            let current = inputElement;
+            let postContainer: HTMLElement | null = null;
 
-        for (const selector of selectors) {
-            const elements = document.querySelectorAll(selector);
+            // Look for the parent post container (similar to how X/Twitter finds the article)
+            while (current && current !== document.body) {
+                // LinkedIn post containers - check multiple patterns used by LinkedIn
+                const isPostContainer = (
+                    // Role-based identification
+                    current.getAttribute('role') === 'listitem' ||
 
-            for (let i = 0; i < elements.length; i++) {
-                const element = elements[i];
-                const text = element.textContent?.trim();
+                    // Class-based identification  
+                    current.classList.contains('feed-shared-update-v2') ||
+                    current.classList.contains('feed-shared-update') ||
+                    current.classList.contains('occludable-update') ||
+                    current.classList.contains('feed-shared-activity') ||
 
-                // Look for substantial content (at least 20 characters)
-                if (text && text.length > 20) {
-                    return text;
+                    // Attribute-based identification
+                    current.hasAttribute('componentkey') ||
+                    current.getAttribute('data-view-name') === 'main-feed-activity-card' ||
+                    current.getAttribute('data-view-name') === 'feed-shared-update' ||
+                    current.hasAttribute('data-urn') ||
+
+                    // Structure-based identification (must be a container with substantial size)
+                    (current.tagName === 'DIV' &&
+                        current.offsetHeight > 200 &&
+                        current.querySelector('[data-view-name="feed-commentary"]') !== null)
+                );
+
+                if (isPostContainer) {
+                    postContainer = current;
+                    break;
                 }
+                current = current.parentElement as HTMLElement;
             }
-        }
 
-        // Try to find the post container that contains the comment we're replying to
-        const postContainers = document.querySelectorAll('[role="listitem"], article, .feed-shared-update-v2, [componentkey*="activity"]');
+            // If we found the post container, search for content within it ONLY
+            if (postContainer) {
+                // More specific and ordered content selectors - prioritize main content areas
+                const contentSelectors = [
+                    // Primary content areas (most specific first)
+                    '[data-view-name="feed-commentary"] .break-words',
+                    '[data-testid="expandable-text-box"]',
+                    '.feed-shared-text__text-view .break-words',
+                    '.feed-shared-article__description .break-words',
 
-        for (let i = 0; i < postContainers.length; i++) {
-            const container = postContainers[i];
+                    // Secondary content areas
+                    '[data-view-name="feed-commentary"]',
+                    '.feed-shared-text__text-view',
+                    '.feed-shared-text',
+                    '.feed-shared-article__description',
 
-            // Look for various text content within the container
-            const textSelectors = [
-                '.break-words',
-                '[data-testid="expandable-text-box"]',
-                'p',
-                'span'
-            ];
+                    // Fallback broader selectors within the post container
+                    '.break-words',
+                    'span[dir="ltr"]'
+                ];
 
-            for (const textSelector of textSelectors) {
-                const textElements = container.querySelectorAll(textSelector);
-                for (let j = 0; j < textElements.length; j++) {
-                    const textElement = textElements[j];
-                    const text = textElement.textContent?.trim();
+                for (const selector of contentSelectors) {
+                    // Search ONLY within the identified post container
+                    const elements = postContainer.querySelectorAll(selector);
 
-                    // Skip short text and likely UI elements
-                    if (text &&
-                        text.length > 50 &&
-                        !text.toLowerCase().includes('comment') &&
-                        !text.toLowerCase().includes('like') &&
-                        !text.toLowerCase().includes('share') &&
-                        !text.toLowerCase().includes('repost')) {
+                    for (let i = 0; i < elements.length; i++) {
+                        const element = elements[i];
+                        const text = element.textContent?.trim();
 
-                        return text;
+                        // More rigorous content validation
+                        if (text &&
+                            text.length > 20 && // Minimum content length
+                            text.length < 5000 && // Maximum to avoid huge content blocks
+                            // Filter out obvious UI elements and interactions
+                            !text.toLowerCase().includes('comment') &&
+                            !text.toLowerCase().includes('like') &&
+                            !text.toLowerCase().includes('share') &&
+                            !text.toLowerCase().includes('repost') &&
+                            !text.toLowerCase().includes('follow') &&
+                            !text.toLowerCase().includes('connect') &&
+                            !text.toLowerCase().includes('view profile') &&
+                            !text.toLowerCase().includes('see more') &&
+                            !text.toLowerCase().includes('see less') &&
+                            !text.match(/^\d+\s*(like|comment|share|repost)/i) &&
+                            !text.match(/^(like|comment|share|repost|send)\s*$/i) &&
+                            // Filter out pure navigation/UI text
+                            !text.match(/^(•|·|\|)\s*/) &&
+                            // Ensure it has some meaningful content (letters/words)
+                            text.match(/[a-zA-Z]{3,}/)) {
+
+                            return { content: text, container: postContainer };
+                        }
                     }
                 }
+
+                console.warn('ChatterBox LinkedIn: Post container found but no valid content detected');
+                // If we found the container but no good content, don't fall back to global search
+                // This prevents grabbing content from other posts
+                return { content: null, container: postContainer };
+            } else {
+                console.warn('ChatterBox LinkedIn: Could not find post container for input element');
+            }
+        } else {
+            console.warn('ChatterBox LinkedIn: No input element provided for context');
+        }
+
+        // Only use global search as absolute fallback when no input element context is available
+        // This should rarely be used in practice
+        console.log('ChatterBox LinkedIn: Falling back to global content search (less reliable)');
+        const globalSelectors = [
+            '[data-view-name="feed-commentary"] .break-words',
+            '[data-testid="expandable-text-box"]',
+            '.feed-shared-text__text-view .break-words'
+        ];
+
+        for (const selector of globalSelectors) {
+            const elements = document.querySelectorAll(selector);
+
+            // Only take the first element to minimize risk of wrong content
+            if (elements.length > 0) {
+                const element = elements[0];
+                const text = element.textContent?.trim();
+
+                if (text &&
+                    text.length > 20 &&
+                    text.length < 5000 &&
+                    !text.toLowerCase().includes('comment') &&
+                    !text.toLowerCase().includes('like') &&
+                    !text.toLowerCase().includes('share') &&
+                    text.match(/[a-zA-Z]{3,}/)) {
+
+                    console.log('ChatterBox LinkedIn: Using global fallback content:', text.substring(0, 100) + '...');
+                    return { content: text, container: null };
+                }
             }
         }
 
-        return null;
+        console.error('ChatterBox LinkedIn: No valid post content found');
+        return { content: null, container: null };
     }
+
 
     /**
      * Sends message to background script with retry logic
      */
     private async sendMessageWithRetry(request: any, maxRetries = 3, delayMs = 200): Promise<any> {
+        // Check if chrome.runtime is available
+        if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
+            throw new Error('Extension context is not available. Please refresh the page and try again.');
+        }
+
         for (let attempt = 0; attempt < maxRetries; attempt++) {
             try {
                 const response = await chrome.runtime.sendMessage(request);
-                return response;
-            } catch (error) {
-                if (error instanceof Error && error.message.includes('Could not establish connection')) {
-                    await new Promise(res => setTimeout(res, delayMs));
+
+                // Check if we got a valid response
+                if (response === undefined && attempt < maxRetries - 1) {
+                    console.warn(`ChatterBox LinkedIn: Got undefined response, retrying... (attempt ${attempt + 1})`);
+                    await new Promise(res => setTimeout(res, delayMs * (attempt + 1)));
                     continue;
                 }
+
+                return response;
+            } catch (error) {
+                console.warn(`ChatterBox LinkedIn: sendMessage attempt ${attempt + 1} failed:`, error);
+
+                if (error instanceof Error) {
+                    // Check for extension context invalidation
+                    if (error.message.includes('Extension context invalidated') ||
+                        error.message.includes('message port closed') ||
+                        error.message.includes('Could not establish connection')) {
+
+                        if (attempt === maxRetries - 1) {
+                            throw new Error('Extension was reloaded or disconnected. Please refresh the page and try again.');
+                        }
+
+                        await new Promise(res => setTimeout(res, delayMs * (attempt + 1)));
+                        continue;
+                    }
+                }
+
                 throw error;
             }
         }
-        throw new Error('Failed to communicate with extension background script.');
+        throw new Error('Failed to communicate with extension background script after multiple attempts.');
     }
 }
 

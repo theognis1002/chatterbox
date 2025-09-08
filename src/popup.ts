@@ -1,6 +1,6 @@
 // Popup script for ChatterBox
 import { loadDefaultSystemPrompt } from './utils/promptLoader';
-import { DEFAULT_TEMPLATES, DEFAULT_LINKEDIN_POST_TEMPLATES, ReplyTemplate } from './types';
+import { DEFAULT_TEMPLATES, DEFAULT_LINKEDIN_POST_TEMPLATES, ReplyTemplate, OPENAI_MODELS, OPENROUTER_MODELS, ModelOption } from './types';
 
 interface AdvancedSettings {
     temperature: number;
@@ -8,21 +8,24 @@ interface AdvancedSettings {
     presencePenalty: number;
     frequencyPenalty: number;
     typingSpeed: number;
+    casualReplies: boolean;
 }
 
 const DEFAULT_SETTINGS: AdvancedSettings = {
-    temperature: 0.7,
-    maxTokens: 50,
+    temperature: 0.5,
+    maxTokens: 40,
     presencePenalty: 0.6,
     frequencyPenalty: 0.3,
-    typingSpeed: 5
+    typingSpeed: 5,
+    casualReplies: false
 };
 
 class PopupManager {
-    private apiKeyInput!: HTMLInputElement;
+    private openrouterApiKeyInput!: HTMLInputElement;
     private saveButton!: HTMLButtonElement;
     private statusMessage!: HTMLElement;
     private modelSelect!: HTMLSelectElement;
+    private modelDescription!: HTMLElement;
     private systemPromptInput!: HTMLTextAreaElement;
     private resetPromptButton!: HTMLButtonElement;
     private advancedToggle!: HTMLButtonElement;
@@ -40,6 +43,12 @@ class PopupManager {
     private templatesTab!: HTMLButtonElement;
     private generalContent!: HTMLElement;
     private templatesContent!: HTMLElement;
+    private xTemplatesHeader!: HTMLElement;
+    private xTemplatesToggle!: HTMLElement;
+    private linkedinTemplatesHeader!: HTMLElement;
+    private linkedinTemplatesToggle!: HTMLElement;
+    private linkedinPostTemplatesHeader!: HTMLElement;
+    private linkedinPostTemplatesToggle!: HTMLElement;
     private templatesXList!: HTMLElement;
     private addXTemplateButton!: HTMLButtonElement;
     private resetXTemplatesButton!: HTMLButtonElement;
@@ -53,12 +62,10 @@ class PopupManager {
     private resetLinkedInPostTemplatesButton!: HTMLButtonElement;
     private linkedinPostTemplates: ReplyTemplate[] = [];
     private typingSpeedInput!: HTMLInputElement;
-    private xTemplatesSubTab!: HTMLButtonElement;
-    private linkedinTemplatesSubTab!: HTMLButtonElement;
-    private linkedinPostTemplatesSubTab!: HTMLButtonElement;
-    private templatesXContent!: HTMLElement;
-    private templatesLinkedInContent!: HTMLElement;
-    private templatesLinkedInPostContent!: HTMLElement;
+    private casualRepliesInput!: HTMLInputElement;
+    private xTemplatesContent!: HTMLElement;
+    private linkedinTemplatesContent!: HTMLElement;
+    private linkedinPostTemplatesContent!: HTMLElement;
 
     constructor() {
         this.initializeElements();
@@ -66,10 +73,11 @@ class PopupManager {
     }
 
     private initializeElements() {
-        this.apiKeyInput = document.getElementById('apiKey') as HTMLInputElement;
+        this.openrouterApiKeyInput = document.getElementById('openrouterApiKey') as HTMLInputElement;
         this.saveButton = document.getElementById('saveButton') as HTMLButtonElement;
         this.statusMessage = document.getElementById('statusMessage') as HTMLElement;
         this.modelSelect = document.getElementById('modelSelect') as HTMLSelectElement;
+        this.modelDescription = document.getElementById('modelDescription') as HTMLElement;
         this.systemPromptInput = document.getElementById('systemPrompt') as HTMLTextAreaElement;
         this.resetPromptButton = document.getElementById('resetPromptButton') as HTMLButtonElement;
         this.advancedToggle = document.getElementById('advancedToggle') as HTMLButtonElement;
@@ -86,6 +94,12 @@ class PopupManager {
         this.templatesTab = document.getElementById('templatesTab') as HTMLButtonElement;
         this.generalContent = document.getElementById('generalContent') as HTMLElement;
         this.templatesContent = document.getElementById('templatesContent') as HTMLElement;
+        this.xTemplatesHeader = document.getElementById('xTemplatesHeader') as HTMLElement;
+        this.xTemplatesToggle = document.getElementById('xTemplatesToggle') as HTMLElement;
+        this.linkedinTemplatesHeader = document.getElementById('linkedinTemplatesHeader') as HTMLElement;
+        this.linkedinTemplatesToggle = document.getElementById('linkedinTemplatesToggle') as HTMLElement;
+        this.linkedinPostTemplatesHeader = document.getElementById('linkedinPostTemplatesHeader') as HTMLElement;
+        this.linkedinPostTemplatesToggle = document.getElementById('linkedinPostTemplatesToggle') as HTMLElement;
         this.templatesXList = document.getElementById('templatesXList') as HTMLElement;
         this.addXTemplateButton = document.getElementById('addXTemplateButton') as HTMLButtonElement;
         this.resetXTemplatesButton = document.getElementById('resetXTemplatesButton') as HTMLButtonElement;
@@ -95,13 +109,11 @@ class PopupManager {
         this.templatesLinkedInPostList = document.getElementById('templatesLinkedInPostList') as HTMLElement;
         this.addLinkedInPostTemplateButton = document.getElementById('addLinkedInPostTemplateButton') as HTMLButtonElement;
         this.resetLinkedInPostTemplatesButton = document.getElementById('resetLinkedInPostTemplatesButton') as HTMLButtonElement;
-        this.xTemplatesSubTab = document.getElementById('xTemplatesSubTab') as HTMLButtonElement;
-        this.linkedinTemplatesSubTab = document.getElementById('linkedinTemplatesSubTab') as HTMLButtonElement;
-        this.linkedinPostTemplatesSubTab = document.getElementById('linkedinPostTemplatesSubTab') as HTMLButtonElement;
         this.typingSpeedInput = document.getElementById('typingSpeed') as HTMLInputElement;
-        this.templatesXContent = document.getElementById('templatesXContent') as HTMLElement;
-        this.templatesLinkedInContent = document.getElementById('templatesLinkedInContent') as HTMLElement;
-        this.templatesLinkedInPostContent = document.getElementById('templatesLinkedInPostContent') as HTMLElement;
+        this.casualRepliesInput = document.getElementById('casualReplies') as HTMLInputElement;
+        this.xTemplatesContent = document.getElementById('xTemplatesContent') as HTMLElement;
+        this.linkedinTemplatesContent = document.getElementById('linkedinTemplatesContent') as HTMLElement;
+        this.linkedinPostTemplatesContent = document.getElementById('linkedinPostTemplatesContent') as HTMLElement;
     }
 
     private async init() {
@@ -120,12 +132,15 @@ class PopupManager {
 
     private setupEventListeners() {
         this.saveButton.addEventListener('click', () => this.saveSettings());
-        this.apiKeyInput.addEventListener('keypress', (e) => {
+        this.openrouterApiKeyInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.saveSettings();
             }
         });
-        this.modelSelect.addEventListener('change', () => this.saveSettings());
+        this.modelSelect.addEventListener('change', () => {
+            this.updateModelDescription();
+            this.saveSettings();
+        });
         this.systemPromptInput.addEventListener('change', () => this.saveSettings());
         this.resetPromptButton.addEventListener('click', () => this.resetSystemPrompt());
 
@@ -151,10 +166,10 @@ class PopupManager {
         this.generalTab.addEventListener('click', () => this.switchTab('general'));
         this.templatesTab.addEventListener('click', () => this.switchTab('templates'));
 
-        // Sub-tab switching within Templates tab
-        this.xTemplatesSubTab.addEventListener('click', () => this.switchTemplatesSubTab('x'));
-        this.linkedinTemplatesSubTab.addEventListener('click', () => this.switchTemplatesSubTab('linkedin'));
-        this.linkedinPostTemplatesSubTab.addEventListener('click', () => this.switchTemplatesSubTab('linkedinPost'));
+        // Template card toggle listeners
+        this.xTemplatesHeader.addEventListener('click', () => this.toggleTemplateCard('xTemplates'));
+        this.linkedinTemplatesHeader.addEventListener('click', () => this.toggleTemplateCard('linkedinTemplates'));
+        this.linkedinPostTemplatesHeader.addEventListener('click', () => this.toggleTemplateCard('linkedinPostTemplates'));
 
         // Template management for X
         this.addXTemplateButton.addEventListener('click', () => this.addTemplate('x'));
@@ -196,6 +211,7 @@ class PopupManager {
         this.presencePenaltyInput.addEventListener('change', () => this.saveAdvancedSettings());
         this.frequencyPenaltyInput.addEventListener('change', () => this.saveAdvancedSettings());
         this.typingSpeedInput.addEventListener('change', () => this.saveAdvancedSettings());
+        this.casualRepliesInput.addEventListener('change', () => this.saveAdvancedSettings());
 
         // Reset advanced settings
         const resetAdvancedButton = document.getElementById('resetAdvancedButton');
@@ -205,17 +221,20 @@ class PopupManager {
     private async loadSettings() {
         try {
             const result = await chrome.storage.sync.get([
-                'apiKey',
+                'openrouterApiKey',
                 'model',
                 'systemPrompt',
                 'advancedSettings'
             ]);
 
-            if (result.apiKey) {
-                this.apiKeyInput.value = result.apiKey;
+            if (result.openrouterApiKey) {
+                this.openrouterApiKeyInput.value = result.openrouterApiKey;
             }
             if (result.model) {
                 this.modelSelect.value = result.model;
+            } else {
+                // Set default model
+                this.modelSelect.value = 'openai/gpt-4.1';
             }
             this.systemPromptInput.value = result.systemPrompt || this.defaultSystemPrompt;
 
@@ -226,6 +245,7 @@ class PopupManager {
             this.presencePenaltyInput.value = settings.presencePenalty.toString();
             this.frequencyPenaltyInput.value = settings.frequencyPenalty.toString();
             this.typingSpeedInput.value = settings.typingSpeed.toString();
+            this.casualRepliesInput.checked = settings.casualReplies || false;
 
             // Update range values
             this.updateAllRangeValues();
@@ -235,17 +255,17 @@ class PopupManager {
     }
 
     private async saveSettings() {
-        const apiKey = this.apiKeyInput.value.trim();
+        const openrouterApiKey = this.openrouterApiKeyInput.value.trim();
         const model = this.modelSelect.value;
         const systemPrompt = this.systemPromptInput.value.trim();
 
-        if (!apiKey) {
-            this.showStatus('Please enter an API key', 'error');
+        // Validate OpenRouter API key
+        if (!openrouterApiKey) {
+            this.showStatus('Please enter an OpenRouter API key', 'error');
             return;
         }
-
-        if (!apiKey.startsWith('sk-')) {
-            this.showStatus('Invalid API key format', 'error');
+        if (!openrouterApiKey.startsWith('sk-or-v1-')) {
+            this.showStatus('Invalid OpenRouter API key format (should start with sk-or-v1-)', 'error');
             return;
         }
 
@@ -258,11 +278,12 @@ class PopupManager {
                 maxTokens: parseInt(this.maxTokensInput.value),
                 presencePenalty: parseFloat(this.presencePenaltyInput.value),
                 frequencyPenalty: parseFloat(this.frequencyPenaltyInput.value),
-                typingSpeed: parseFloat(this.typingSpeedInput.value)
+                typingSpeed: parseFloat(this.typingSpeedInput.value),
+                casualReplies: this.casualRepliesInput.checked
             };
 
             await chrome.storage.sync.set({
-                apiKey,
+                openrouterApiKey,
                 model,
                 systemPrompt: systemPrompt || this.defaultSystemPrompt,
                 advancedSettings
@@ -312,6 +333,7 @@ class PopupManager {
         this.presencePenaltyInput.value = DEFAULT_SETTINGS.presencePenalty.toString();
         this.frequencyPenaltyInput.value = DEFAULT_SETTINGS.frequencyPenalty.toString();
         this.typingSpeedInput.value = DEFAULT_SETTINGS.typingSpeed.toString();
+        this.casualRepliesInput.checked = DEFAULT_SETTINGS.casualReplies;
         this.updateAllRangeValues();
         this.saveSettings();
     }
@@ -326,6 +348,22 @@ class PopupManager {
         }, 3000);
     }
 
+
+
+    private updateModelDescription() {
+        const selectedModelId = this.modelSelect.value;
+        let description = '';
+        
+        // Find model in OpenRouter models list
+        const selectedModel = OPENROUTER_MODELS.find(m => m.id === selectedModelId);
+        
+        if (selectedModel) {
+            description = selectedModel.description || '';
+        }
+        
+        this.modelDescription.textContent = description;
+    }
+
     private switchTab(tab: 'general' | 'templates') {
         // Update tab buttons
         this.generalTab.classList.toggle('active', tab === 'general');
@@ -334,6 +372,30 @@ class PopupManager {
         // Update content visibility
         this.generalContent.classList.toggle('active', tab === 'general');
         this.templatesContent.classList.toggle('active', tab === 'templates');
+    }
+
+    private toggleTemplateCard(cardType: 'xTemplates' | 'linkedinTemplates' | 'linkedinPostTemplates') {
+        let content: HTMLElement;
+        let toggle: HTMLElement;
+        
+        switch (cardType) {
+            case 'xTemplates':
+                content = this.xTemplatesContent;
+                toggle = this.xTemplatesToggle;
+                break;
+            case 'linkedinTemplates':
+                content = this.linkedinTemplatesContent;
+                toggle = this.linkedinTemplatesToggle;
+                break;
+            case 'linkedinPostTemplates':
+                content = this.linkedinPostTemplatesContent;
+                toggle = this.linkedinPostTemplatesToggle;
+                break;
+        }
+        
+        const isCollapsed = content.classList.contains('collapsed');
+        content.classList.toggle('collapsed', !isCollapsed);
+        toggle.textContent = isCollapsed ? '▼' : '▶';
     }
 
     private async loadTemplates() {
@@ -548,29 +610,19 @@ class PopupManager {
     }
 
     private async saveAdvancedSettings() {
-        const advancedSettings = {
+        const advancedSettings: AdvancedSettings = {
             temperature: parseFloat(this.temperatureInput.value),
             maxTokens: parseInt(this.maxTokensInput.value),
             presencePenalty: parseFloat(this.presencePenaltyInput.value),
             frequencyPenalty: parseFloat(this.frequencyPenaltyInput.value),
-            typingSpeed: parseInt(this.typingSpeedInput.value)
+            typingSpeed: parseInt(this.typingSpeedInput.value),
+            casualReplies: this.casualRepliesInput.checked
         };
 
         await chrome.storage.sync.set({ advancedSettings });
         this.showStatus('Settings saved!', 'success');
     }
 
-    private switchTemplatesSubTab(tab: 'x' | 'linkedin' | 'linkedinPost') {
-        // Update tab buttons
-        this.xTemplatesSubTab.classList.toggle('active', tab === 'x');
-        this.linkedinTemplatesSubTab.classList.toggle('active', tab === 'linkedin');
-        this.linkedinPostTemplatesSubTab.classList.toggle('active', tab === 'linkedinPost');
-
-        // Update content visibility
-        this.templatesXContent.style.display = tab === 'x' ? 'block' : 'none';
-        this.templatesLinkedInContent.style.display = tab === 'linkedin' ? 'block' : 'none';
-        this.templatesLinkedInPostContent.style.display = tab === 'linkedinPost' ? 'block' : 'none';
-    }
 }
 
 // Initialize popup when DOM is ready

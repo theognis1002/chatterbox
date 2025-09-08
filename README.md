@@ -136,10 +136,9 @@ The extension includes 10 default X/Twitter templates:
 4. **Sarcastic** (🤨) - Generates clever sarcastic responses
 5. **Insightful** (💡) - Adds valuable insight or technical perspective
 6. **Disagree** (👎) - Respectful disagreement responses
-7. **Promote** (🚀) - Promotes wraithscan.com security scanning service
-8. **Congrats** (🎉) - Congratulatory responses
-9. **Respond** (💬) - General positive responses
-10. **Encourage** (💪) - Encouraging and supportive messages
+7. **Congrats** (🎉) - Congratulatory responses
+8. **Respond** (💬) - General positive responses
+9. **Encourage** (💪) - Encouraging and supportive messages
 
 Plus LinkedIn connection message templates for personalized outreach.
 

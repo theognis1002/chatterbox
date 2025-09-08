@@ -23,29 +23,34 @@
 
       <div id="generalContent" class="tab-content active">
         <div class="api-key-section">
-          <label for="apiKey">OpenAI API Key:</label>
+          <label for="openrouterApiKey">OpenRouter API Key:</label>
           <input 
             type="password" 
-            id="apiKey" 
+            id="openrouterApiKey" 
             class="api-key-input" 
-            placeholder="sk-..."
+            placeholder="sk-or-v1-..."
           />
           <button id="saveButton" class="save-button">Save Settings</button>
           <div id="statusMessage" class="status-message" style="display: none;"></div>
         </div>
 
         <div class="model-section">
-          <label for="modelSelect">OpenAI Model:</label>
+          <label for="modelSelect" id="modelLabel">AI Model:</label>
           <select id="modelSelect" class="model-select">
-            <option value="gpt-5">GPT-5</option>
-            <option value="gpt-4">GPT-4</option>
-            <option value="gpt-4-turbo">GPT-4 Turbo</option>
-            <option value="gpt-4-turbo-2024-04-09">GPT-4 Turbo (2024-04-09)</option>
-            <option value="gpt-4o" selected>GPT-4o</option>
-            <option value="gpt-4.1">GPT-4.1</option>
-            <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
-            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+            <option value="openai/gpt-4.1" selected>GPT-4.1</option>
+            <option value="openai/gpt-5">GPT-5</option>
+            <option value="openai/gpt-4o">GPT-4o</option>
+            <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+            <option value="openai/gpt-4-turbo">GPT-4 Turbo</option>
+            <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
+            <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+            <option value="anthropic/claude-3-haiku">Claude 3 Haiku</option>
+            <option value="google/gemini-pro">Gemini Pro</option>
+            <option value="meta-llama/llama-3.1-405b">Llama 3.1 405B</option>
+            <option value="meta-llama/llama-3.1-70b">Llama 3.1 70B</option>
+            <option value="mistralai/mixtral-8x7b">Mixtral 8x7B</option>
           </select>
+          <div id="modelDescription" class="model-description"></div>
         </div>
 
         <div class="prompt-section">
@@ -148,43 +153,75 @@
               <small class="setting-description">Delay between characters. Higher values make typing appear more human-like.</small>
             </div>
 
+            <div class="setting-item">
+              <label for="casualReplies">Make replies casual:</label>
+              <div class="setting-control">
+                <input 
+                  type="checkbox" 
+                  id="casualReplies" 
+                  class="checkbox-input"
+                />
+              </div>
+              <small class="setting-description">Removes quotes and trailing periods to make replies sound more natural.</small>
+            </div>
+
             <button id="resetAdvancedButton" class="reset-button">Reset to Defaults</button>
           </div>
         </div>
       </div>
 
       <div id="templatesContent" class="tab-content">
-        <!-- Sub-tabs for X vs LinkedIn -->
-        <div class="tab-buttons sub-tab-buttons">
-          <button id="xTemplatesSubTab" class="tab-button small active">X Replies</button>
-          <button id="linkedinTemplatesSubTab" class="tab-button small">LinkedIn Connect</button>
-          <button id="linkedinPostTemplatesSubTab" class="tab-button small">LinkedIn Posts</button>
-        </div>
-
-        <!-- X Templates section -->
-        <div id="templatesXContent" class="sub-tab-content active">
-          <div class="templates-section">
-            <div class="templates-list" id="templatesXList"></div>
-            <button id="addXTemplateButton" class="add-button">Add Template</button>
-            <button id="resetXTemplatesButton" class="reset-button">Reset to Defaults</button>
+        <!-- X Replies Templates Card -->
+        <div class="template-card">
+          <div class="template-card-header" id="xTemplatesHeader">
+            <div class="template-card-title">
+              <span class="template-card-icon">𝕏</span>
+              <h3>X Replies</h3>
+            </div>
+            <span class="toggle-icon" id="xTemplatesToggle">▶</span>
+          </div>
+          <div class="template-card-content collapsed" id="xTemplatesContent">
+            <div class="templates-section">
+              <div class="templates-list" id="templatesXList"></div>
+              <button id="addXTemplateButton" class="add-button">Add Template</button>
+              <button id="resetXTemplatesButton" class="reset-button">Reset to Defaults</button>
+            </div>
           </div>
         </div>
 
-        <!-- LinkedIn Connect Messages section -->
-        <div id="templatesLinkedInContent" class="sub-tab-content">
-          <div class="templates-section">
-            <div class="templates-list" id="templatesLinkedInList"></div>
-            <button id="addLinkedInTemplateButton" class="add-button">Add Message</button>
-            <button id="resetLinkedInTemplatesButton" class="reset-button">Reset to Defaults</button>
+        <!-- LinkedIn Connect Templates Card -->
+        <div class="template-card">
+          <div class="template-card-header" id="linkedinTemplatesHeader">
+            <div class="template-card-title">
+              <span class="template-card-icon">💼</span>
+              <h3>LinkedIn Connect</h3>
+            </div>
+            <span class="toggle-icon" id="linkedinTemplatesToggle">▶</span>
+          </div>
+          <div class="template-card-content collapsed" id="linkedinTemplatesContent">
+            <div class="templates-section">
+              <div class="templates-list" id="templatesLinkedInList"></div>
+              <button id="addLinkedInTemplateButton" class="add-button">Add Message</button>
+              <button id="resetLinkedInTemplatesButton" class="reset-button">Reset to Defaults</button>
+            </div>
           </div>
         </div>
 
-        <!-- LinkedIn Post Comments section -->
-        <div id="templatesLinkedInPostContent" class="sub-tab-content">
-          <div class="templates-section">
-            <div class="templates-list" id="templatesLinkedInPostList"></div>
-            <button id="addLinkedInPostTemplateButton" class="add-button">Add Template</button>
-            <button id="resetLinkedInPostTemplatesButton" class="reset-button">Reset to Defaults</button>
+        <!-- LinkedIn Posts Templates Card -->
+        <div class="template-card">
+          <div class="template-card-header" id="linkedinPostTemplatesHeader">
+            <div class="template-card-title">
+              <span class="template-card-icon">📝</span>
+              <h3>LinkedIn Posts</h3>
+            </div>
+            <span class="toggle-icon" id="linkedinPostTemplatesToggle">▶</span>
+          </div>
+          <div class="template-card-content collapsed" id="linkedinPostTemplatesContent">
+            <div class="templates-section">
+              <div class="templates-list" id="templatesLinkedInPostList"></div>
+              <button id="addLinkedInPostTemplateButton" class="add-button">Add Template</button>
+              <button id="resetLinkedInPostTemplatesButton" class="reset-button">Reset to Defaults</button>
+            </div>
           </div>
         </div>
       </div>
@@ -192,15 +229,17 @@
 
     <div class="info-section">
       <h2>How to use:</h2>
-      <p>1. Enter your OpenAI API key above</p>
-      <p>2. Go to X and click reply on any tweet</p>
-      <p>3. Select a template button to generate a reply</p>
-      <p>4. Edit the generated reply as needed</p>
+      <p>1. Enter your OpenRouter API key above</p>
+      <p>2. Choose from 300+ AI models (GPT-5, Claude 4, Gemini, Llama, etc.)</p>
+      <p>3. Go to X/Twitter or LinkedIn and reply to posts</p>
+      <p>4. Select a template button to generate AI-powered replies</p>
+      <p>5. Edit the generated reply as needed</p>
       
-      <h2>Get an API key:</h2>
+      <h2>Get an OpenRouter API key:</h2>
       <p>
-        Visit <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a> 
-        to create your API key.
+        Visit <a href="https://openrouter.ai/keys" target="_blank">OpenRouter</a> 
+        to create your API key. OpenRouter provides access to 300+ AI models 
+        from OpenAI, Anthropic, Google, Meta, and more.
       </p>
     </div>
   </div>
