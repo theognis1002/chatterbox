@@ -11,10 +11,10 @@ interface AdvancedSettings {
 }
 
 const DEFAULT_SETTINGS: AdvancedSettings = {
-    temperature: 0.5,
+    temperature: 0.0,
     maxTokens: 50,
-    presencePenalty: 0.6,
-    frequencyPenalty: 0.3,
+    presencePenalty: 0.25,
+    frequencyPenalty: 0.25,
     typingSpeed: 5
 };
 
@@ -62,10 +62,10 @@ class BackgroundService {
         try {
             // Get platform-specific settings from storage
             const platform = request.platform || 'x';
-            const storageKeys = platform === 'linkedin' 
+            const storageKeys = platform === 'linkedin'
                 ? ['openrouterApiKey', 'model', 'linkedinSettings']
                 : ['openrouterApiKey', 'model', 'xSettings'];
-            
+
             const result = await chrome.storage.sync.get(storageKeys);
             const { openrouterApiKey, model } = result;
 
@@ -80,7 +80,7 @@ class BackgroundService {
             // Get platform-specific settings
             let systemPrompt: string;
             let advancedSettings: AdvancedSettings;
-            
+
             if (platform === 'linkedin') {
                 const linkedinSettings = result.linkedinSettings || {};
                 systemPrompt = linkedinSettings.systemPrompt || this.defaultLinkedInSystemPrompt;

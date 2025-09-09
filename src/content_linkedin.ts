@@ -89,9 +89,17 @@ class ChatterBoxLinkedIn {
                 // Has LinkedIn's specific classes
                 element.classList.contains('tiptap') ||
                 element.classList.contains('ProseMirror') ||
+                // Quill editor classes (for post detail pages)
+                element.classList.contains('ql-editor') ||
+                element.hasAttribute('data-test-ql-editor-contenteditable') ||
+                element.hasAttribute('data-placeholder') ||
                 // Check parent elements for comment indicators
                 element.closest('[aria-label*="Add a comment"]') !== null ||
-                element.closest('[aria-label*="comment"]') !== null
+                element.closest('[aria-label*="comment"]') !== null ||
+                // Check for Quill editor container
+                element.closest('.comments-comment-box__form') !== null ||
+                // Check for text editor for creating content
+                (element.getAttribute('aria-label')?.toLowerCase().includes('creating content') ?? false)
             );
 
             return isCommentArea;
@@ -168,7 +176,15 @@ class ChatterBoxLinkedIn {
             '[placeholder*="Add a comment"]',
             // New selectors based on the provided HTML structure
             '[data-testid="ui-core-tiptap-text-editor-wrapper"]',
-            '.tiptap.ProseMirror[contenteditable="true"]'
+            '.tiptap.ProseMirror[contenteditable="true"]',
+            // Post detail page comment editor (Quill editor) - more specific selectors
+            '.ql-editor[contenteditable="true"]',
+            '.ql-editor[data-test-ql-editor-contenteditable="true"]',
+            '.comments-comment-box__form .ql-editor',
+            '.editor-content .ql-editor',
+            '.ql-container .ql-editor',
+            '[aria-label="Text editor for creating content"]',
+            '[data-placeholder="Add a comment…"][contenteditable="true"]'
         ];
 
         for (const selector of commentSelectors) {
@@ -508,9 +524,72 @@ class ChatterBoxLinkedIn {
     }
 
     /**
+     * Find the comment input element near the button that was clicked
+     */
+    private findNearbyInputElement(button: HTMLButtonElement, originalInputElement: HTMLElement): HTMLElement | null {
+        // Strategy 1: Check if the original input element is still valid and nearby
+        if (originalInputElement.isConnected && this.isLinkedInCommentArea(originalInputElement)) {
+            // Check if they're in the same general area (same post)
+            const buttonContainer = button.closest('[role="listitem"], .feed-shared-update-v2, .occludable-update');
+            const inputContainer = originalInputElement.closest('[role="listitem"], .feed-shared-update-v2, .occludable-update');
+            
+            if (buttonContainer && inputContainer && buttonContainer === inputContainer) {
+                return originalInputElement;
+            }
+        }
+
+        // Strategy 2: Look for input elements in the same post container as the button
+        const postContainer = button.closest('[role="listitem"], .feed-shared-update-v2, .occludable-update, .comments-comment-box__form');
+        if (postContainer) {
+            
+            const inputSelectors = [
+                '.ql-editor[contenteditable="true"]',
+                '.ql-editor[data-test-ql-editor-contenteditable="true"]',
+                '[aria-label="Text editor for creating content"]',
+                '[data-placeholder="Add a comment…"][contenteditable="true"]',
+                '.tiptap.ProseMirror[contenteditable="true"]',
+                '[aria-label="Text editor for creating comment"]',
+                '[contenteditable="true"][aria-label*="comment" i]'
+            ];
+
+            for (const selector of inputSelectors) {
+                const candidate = postContainer.querySelector<HTMLElement>(selector);
+                if (candidate && this.isLinkedInCommentArea(candidate)) {
+                    return candidate;
+                }
+            }
+        }
+
+        // Strategy 3: Look for input elements near the button (siblings/nearby elements)
+        let current = button.parentElement;
+        let depth = 0;
+        while (current && depth < 5) {
+            const inputSelectors = [
+                '.ql-editor[contenteditable="true"]',
+                '.ql-editor[data-test-ql-editor-contenteditable="true"]',
+                '[aria-label="Text editor for creating content"]',
+                '[data-placeholder="Add a comment…"][contenteditable="true"]',
+                '.tiptap.ProseMirror[contenteditable="true"]',
+                '[contenteditable="true"][aria-label*="comment" i]'
+            ];
+
+            for (const selector of inputSelectors) {
+                const candidate = current.querySelector<HTMLElement>(selector);
+                if (candidate && this.isLinkedInCommentArea(candidate)) {
+                    return candidate;
+                }
+            }
+            current = current.parentElement;
+            depth++;
+        }
+
+        return null;
+    }
+
+    /**
      * Generates AI-powered post reply similar to X implementation
      */
-    private async generatePostReply(event: MouseEvent, template: ReplyTemplate, inputElement: HTMLElement) {
+    private async generatePostReply(event: MouseEvent, template: ReplyTemplate, originalInputElement: HTMLElement) {
         const button = event.currentTarget as HTMLButtonElement;
         const originalText = button.textContent;
 
@@ -524,6 +603,13 @@ class ChatterBoxLinkedIn {
             // Show loading state
             button.textContent = '⏳ Generating...';
             button.disabled = true;
+
+            // Find the actual input element near our button
+            const inputElement = this.findNearbyInputElement(button, originalInputElement);
+            if (!inputElement) {
+                throw new Error('Could not find the comment input area. Please click directly in the comment box and try again.');
+            }
+
 
             // Get the post content and container context
             const postContext = this.getLinkedInPostContext(inputElement);
@@ -605,7 +691,12 @@ class ChatterBoxLinkedIn {
                     el.getAttribute('aria-label')?.toLowerCase().includes('comment') ||
                     el.classList.contains('tiptap') ||
                     el.classList.contains('ProseMirror') ||
-                    el.closest('[aria-label*="comment"]') !== null
+                    el.classList.contains('ql-editor') ||
+                    el.hasAttribute('data-test-ql-editor-contenteditable') ||
+                    el.hasAttribute('data-placeholder') ||
+                    el.closest('[aria-label*="comment"]') !== null ||
+                    el.closest('.comments-comment-box__form') !== null ||
+                    (el.getAttribute('aria-label')?.toLowerCase().includes('creating content') ?? false)
                 )) ||
                 (el instanceof HTMLTextAreaElement && el.placeholder?.toLowerCase().includes('comment'))
             );
@@ -625,7 +716,14 @@ class ChatterBoxLinkedIn {
                     '.tiptap.ProseMirror[contenteditable="true"]',
                     '[data-testid="ui-core-tiptap-text-editor-wrapper"] [contenteditable="true"]',
                     'textarea[placeholder*="comment" i]',
-                    '[contenteditable="true"][aria-label*="comment" i]'
+                    '[contenteditable="true"][aria-label*="comment" i]',
+                    '.ql-editor[contenteditable="true"]',
+                    '.ql-editor[data-test-ql-editor-contenteditable="true"]',
+                    '.comments-comment-box__form .ql-editor',
+                    '.editor-content .ql-editor',
+                    '.ql-container .ql-editor',
+                    '[aria-label="Text editor for creating content"]',
+                    '[data-placeholder="Add a comment…"][contenteditable="true"]'
                 ];
 
                 for (const selector of selectors) {
@@ -657,7 +755,14 @@ class ChatterBoxLinkedIn {
                     '.tiptap.ProseMirror[contenteditable="true"]',
                     '[data-testid="ui-core-tiptap-text-editor-wrapper"] [contenteditable="true"]',
                     'textarea[placeholder*="comment" i]',
-                    '[contenteditable="true"][aria-label*="comment" i]'
+                    '[contenteditable="true"][aria-label*="comment" i]',
+                    '.ql-editor[contenteditable="true"]',
+                    '.ql-editor[data-test-ql-editor-contenteditable="true"]',
+                    '.comments-comment-box__form .ql-editor',
+                    '.editor-content .ql-editor',
+                    '.ql-container .ql-editor',
+                    '[aria-label="Text editor for creating content"]',
+                    '[data-placeholder="Add a comment…"][contenteditable="true"]'
                 ];
 
                 for (const selector of selectors) {
@@ -800,17 +905,37 @@ class ChatterBoxLinkedIn {
             // Look for the parent post container (similar to how X/Twitter finds the article)
             while (current && current !== document.body) {
                 // LinkedIn post containers - check multiple patterns used by LinkedIn
+                // IMPORTANT: Order matters - check modal containers first to avoid matching smaller containers
                 const isPostContainer = (
-                    // Role-based identification
+                    // LinkedIn modal content containers that contain both post content and comments (PRIORITY)
+                    current.classList.contains('feed-shared-update-detail-viewer__modal-content') ||
+                    current.classList.contains('feed-shared-update-detail-viewer__content') ||
+                    current.classList.contains('feed-shared-update-detail-viewer__right-panel') ||
+                    current.classList.contains('feed-shared-update-detail-viewer__overflow-content') ||
+                    
+                    // Broader modal content detection (high priority)
+                    (current.tagName === 'DIV' &&
+                        current.offsetHeight > 400 &&
+                        current.querySelector('.update-components-text') !== null &&
+                        current.querySelector('.comments-comment-box__form') !== null) ||
+
+                    // Modal/detail page patterns - check for modal or overlay containers
+                    current.getAttribute('role') === 'dialog' ||
+                    current.classList.contains('modal') ||
+                    current.classList.contains('overlay') ||
+                    current.classList.contains('artdeco-modal') ||
+                    current.hasAttribute('aria-modal') ||
+
+                    // Role-based identification (main feed)
                     current.getAttribute('role') === 'listitem' ||
 
-                    // Class-based identification  
+                    // Class-based identification (main feed)
                     current.classList.contains('feed-shared-update-v2') ||
                     current.classList.contains('feed-shared-update') ||
                     current.classList.contains('occludable-update') ||
                     current.classList.contains('feed-shared-activity') ||
 
-                    // Attribute-based identification
+                    // Attribute-based identification (main feed)
                     current.hasAttribute('componentkey') ||
                     current.getAttribute('data-view-name') === 'main-feed-activity-card' ||
                     current.getAttribute('data-view-name') === 'feed-shared-update' ||
@@ -819,10 +944,27 @@ class ChatterBoxLinkedIn {
                     // Structure-based identification (must be a container with substantial size)
                     (current.tagName === 'DIV' &&
                         current.offsetHeight > 200 &&
-                        current.querySelector('[data-view-name="feed-commentary"]') !== null)
+                        current.querySelector('[data-view-name="feed-commentary"]') !== null) ||
+                    
+                    // LinkedIn post detail page specific patterns (lower priority - after modal checks)
+                    (current.tagName === 'DIV' && 
+                        current.offsetHeight > 300 &&
+                        (current.querySelector('.comments-comment-box__form') !== null ||
+                         current.querySelector('[data-view-name="feed-commentary"]') !== null ||
+                         current.querySelector('.feed-shared-text') !== null))
                 );
 
                 if (isPostContainer) {
+                    // EXCLUDE containers that don't contain the actual post content
+                    if (current.classList.contains('feed-shared-update-v2__comments-container') ||
+                        current.classList.contains('comments-comments-list') ||
+                        current.classList.contains('comments-comment-box') ||
+                        current.classList.contains('update-v2-social-activity') ||
+                        current.classList.contains('feed-shared-social-action-bar')) {
+                        current = current.parentElement as HTMLElement;
+                        continue;
+                    }
+                    
                     postContainer = current;
                     break;
                 }
@@ -839,65 +981,155 @@ class ChatterBoxLinkedIn {
                     '.feed-shared-text__text-view .break-words',
                     '.feed-shared-article__description .break-words',
 
+                    // Modal-specific primary selectors (based on actual HTML structure)
+                    '.update-components-text .break-words .tvm-parent-container',
+                    '.update-components-text .break-words',
+                    '.update-components-update-v2__commentary .break-words',
+                    '.tvm-parent-container',
+                    '.update-components-text',
+                    '.update-components-update-v2__commentary',
+
                     // Secondary content areas
                     '[data-view-name="feed-commentary"]',
                     '.feed-shared-text__text-view',
                     '.feed-shared-text',
                     '.feed-shared-article__description',
 
+                    // Modal/detail page specific selectors
+                    '.feed-shared-text-view .break-words',
+                    '.feed-shared-update-v2__description .break-words',
+                    '.feed-shared-text-view',
+                    '.feed-shared-update-v2__description',
+
+                    // Article content in modals
+                    '.article-header__title',
+                    '.article-content',
+                    '.linked-article__title',
+                    '.linked-article__summary',
+
                     // Fallback broader selectors within the post container
                     '.break-words',
-                    'span[dir="ltr"]'
+                    'span[dir="ltr"]',
+                    // Very broad fallback for modal content
+                    'h1, h2, h3',
+                    '[role="heading"]',
+                    'p'
                 ];
 
                 for (const selector of contentSelectors) {
                     // Search ONLY within the identified post container
                     const elements = postContainer.querySelectorAll(selector);
+                    
 
                     for (let i = 0; i < elements.length; i++) {
                         const element = elements[i];
                         const text = element.textContent?.trim();
+                        
 
-                        // More rigorous content validation
-                        if (text &&
-                            text.length > 20 && // Minimum content length
-                            text.length < 5000 && // Maximum to avoid huge content blocks
-                            // Filter out obvious UI elements and interactions
-                            !text.toLowerCase().includes('comment') &&
-                            !text.toLowerCase().includes('like') &&
-                            !text.toLowerCase().includes('share') &&
-                            !text.toLowerCase().includes('repost') &&
-                            !text.toLowerCase().includes('follow') &&
-                            !text.toLowerCase().includes('connect') &&
-                            !text.toLowerCase().includes('view profile') &&
-                            !text.toLowerCase().includes('see more') &&
-                            !text.toLowerCase().includes('see less') &&
-                            !text.match(/^\d+\s*(like|comment|share|repost)/i) &&
-                            !text.match(/^(like|comment|share|repost|send)\s*$/i) &&
-                            // Filter out pure navigation/UI text
-                            !text.match(/^(•|·|\|)\s*/) &&
-                            // Ensure it has some meaningful content (letters/words)
-                            text.match(/[a-zA-Z]{3,}/)) {
+                        // Check if this looks like meaningful content
+                        if (!text) continue;
+                        if (text.length <= 10) continue;
+                        if (text.length >= 5000) continue;
+                        if (text.toLowerCase().includes('comment')) continue;
+                        if (text.toLowerCase().includes('like this')) continue;
+                        if (text.toLowerCase().includes('share this')) continue;
+                        if (text.toLowerCase().includes('follow') && text.length < 100) continue;
+                        if (text.toLowerCase().includes('connect') && text.length < 100) continue;
+                        if (text.toLowerCase().includes('view profile')) continue;
+                        if (text.match(/^\d+\s*(like|comment|share|repost)/i)) continue;
+                        if (text.match(/^(like|comment|share|repost|send)\s*$/i)) continue;
+                        if (text.match(/^(•|·|\|)\s*/)) continue;
+                        if (!text.match(/[a-zA-Z]{3,}/)) continue;
+                        
+                        const isValidContent = true;
 
-                            return { content: text, container: postContainer };
+                        // More rigorous validation for main content, relaxed for modal content
+                        const isModalContainer = postContainer.getAttribute('role') === 'dialog' ||
+                            postContainer.classList.contains('modal') ||
+                            postContainer.classList.contains('artdeco-modal') ||
+                            postContainer.hasAttribute('aria-modal');
+
+                        if (isValidContent) {
+                            // For modal content, be more permissive
+                            if (isModalContainer || text.length > 20) {
+                                return { content: text, container: postContainer };
+                            }
                         }
                     }
                 }
 
-                console.warn('ChatterBox LinkedIn: Post container found but no valid content detected');
+                
+                // For modal containers, try a very broad search as last resort
+                const isModalContainer = postContainer.getAttribute('role') === 'dialog' ||
+                    postContainer.classList.contains('modal') ||
+                    postContainer.classList.contains('artdeco-modal') ||
+                    postContainer.hasAttribute('aria-modal');
+
+                if (isModalContainer) {
+                    // Last resort: grab any substantial text content from the modal
+                    const allTextElements = postContainer.querySelectorAll('*');
+                    for (let i = 0; i < allTextElements.length; i++) {
+                        const element = allTextElements[i];
+                        const text = element.textContent?.trim();
+                        
+                        if (text && 
+                            text.length > 30 &&
+                            text.length < 2000 &&
+                            !text.toLowerCase().includes('comment') &&
+                            !text.toLowerCase().includes('like this') &&
+                            !text.toLowerCase().includes('share this') &&
+                            text.match(/[a-zA-Z\s]{20,}/) && // Must have substantial text
+                            !text.match(/^(like|comment|share|repost|send|follow|connect)\s*$/i)) {
+                            
+                            return { content: text, container: postContainer };
+                        }
+                    }
+                }
+                
                 // If we found the container but no good content, don't fall back to global search
                 // This prevents grabbing content from other posts
                 return { content: null, container: postContainer };
             } else {
-                console.warn('ChatterBox LinkedIn: Could not find post container for input element');
+                // BACKUP METHOD: Walk up until we find a parent with .break-words content
+                let backupCurrent = inputElement;
+                let backupContainer: HTMLElement | null = null;
+                let depth = 0;
+                
+                while (backupCurrent && backupCurrent !== document.body && depth < 15) {
+                    const breakWordsElement = backupCurrent.querySelector('.break-words');
+                    if (breakWordsElement) {
+                        const text = breakWordsElement.textContent?.trim();
+                        if (text && text.length > 20) {
+                            backupContainer = backupCurrent;
+                            break;
+                        }
+                    }
+                    backupCurrent = backupCurrent.parentElement as HTMLElement;
+                    depth++;
+                }
+                
+                if (backupContainer) {
+                    // Try to extract content from the break-words element
+                    const breakWordsElement = backupContainer.querySelector('.break-words');
+                    if (breakWordsElement) {
+                        const text = breakWordsElement.textContent?.trim();
+                        
+                        // Simple validation for backup method
+                        if (text && 
+                            text.length > 20 && 
+                            text.length < 5000 &&
+                            text.match(/[a-zA-Z\s]{20,}/)) {
+                            
+                            return { content: text, container: backupContainer };
+                        }
+                    }
+                }
+                
             }
-        } else {
-            console.warn('ChatterBox LinkedIn: No input element provided for context');
         }
 
         // Only use global search as absolute fallback when no input element context is available
         // This should rarely be used in practice
-        console.log('ChatterBox LinkedIn: Falling back to global content search (less reliable)');
         const globalSelectors = [
             '[data-view-name="feed-commentary"] .break-words',
             '[data-testid="expandable-text-box"]',
@@ -920,13 +1152,11 @@ class ChatterBoxLinkedIn {
                     !text.toLowerCase().includes('share') &&
                     text.match(/[a-zA-Z]{3,}/)) {
 
-                    console.log('ChatterBox LinkedIn: Using global fallback content:', text.substring(0, 100) + '...');
                     return { content: text, container: null };
                 }
             }
         }
 
-        console.error('ChatterBox LinkedIn: No valid post content found');
         return { content: null, container: null };
     }
 

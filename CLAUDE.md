@@ -106,7 +106,7 @@ src/
   // & prompts/x-system-prompt.txt
   advancedSettings: {
     temperature: 0.5,                 // Response randomness
-    maxTokens: 40,                   // Response length limit
+    maxTokens: 50,                   // Response length limit
     presencePenalty: 0.6,            // Topic diversity
     frequencyPenalty: 0.3,           // Repetition reduction
     typingSpeed: 5                   // ms per character

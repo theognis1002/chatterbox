@@ -11,10 +11,10 @@ interface AdvancedSettings {
 }
 
 const DEFAULT_SETTINGS: AdvancedSettings = {
-    temperature: 0.5,
-    maxTokens: 40,
-    presencePenalty: 0.6,
-    frequencyPenalty: 0.3,
+    temperature: 0.0,
+    maxTokens: 50,
+    presencePenalty: 0.25,
+    frequencyPenalty: 0.25,
     typingSpeed: 5
 };
 
@@ -168,10 +168,10 @@ class PopupManager {
         this.xPresencePenaltyInput.addEventListener('input', () => this.updateRangeValue('x', 'presencePenalty'));
         this.xFrequencyPenaltyInput.addEventListener('input', () => this.updateRangeValue('x', 'frequencyPenalty'));
         this.xTypingSpeedInput.addEventListener('input', () => this.updateRangeValue('x', 'typingSpeed'));
-        
+
         // Save X advanced settings on change
-        [this.xTemperatureInput, this.xMaxTokensInput, this.xPresencePenaltyInput, 
-         this.xFrequencyPenaltyInput, this.xTypingSpeedInput].forEach(input => {
+        [this.xTemperatureInput, this.xMaxTokensInput, this.xPresencePenaltyInput,
+        this.xFrequencyPenaltyInput, this.xTypingSpeedInput].forEach(input => {
             input.addEventListener('change', () => this.saveXSettings());
         });
 
@@ -191,10 +191,10 @@ class PopupManager {
         this.linkedinPresencePenaltyInput.addEventListener('input', () => this.updateRangeValue('linkedin', 'presencePenalty'));
         this.linkedinFrequencyPenaltyInput.addEventListener('input', () => this.updateRangeValue('linkedin', 'frequencyPenalty'));
         this.linkedinTypingSpeedInput.addEventListener('input', () => this.updateRangeValue('linkedin', 'typingSpeed'));
-        
+
         // Save LinkedIn advanced settings on change
-        [this.linkedinTemperatureInput, this.linkedinMaxTokensInput, this.linkedinPresencePenaltyInput, 
-         this.linkedinFrequencyPenaltyInput, this.linkedinTypingSpeedInput].forEach(input => {
+        [this.linkedinTemperatureInput, this.linkedinMaxTokensInput, this.linkedinPresencePenaltyInput,
+        this.linkedinFrequencyPenaltyInput, this.linkedinTypingSpeedInput].forEach(input => {
             input.addEventListener('change', () => this.saveLinkedInSettings());
         });
 
@@ -344,7 +344,7 @@ class PopupManager {
                 templates: this.linkedinPostTemplates
             };
 
-            await chrome.storage.sync.set({ 
+            await chrome.storage.sync.set({
                 linkedinSettings,
                 linkedinTemplates: this.linkedinConnectionTemplates
             });
@@ -370,11 +370,11 @@ class PopupManager {
     private toggleAdvancedSettings(platform: 'x' | 'linkedin') {
         const content = platform === 'x' ? this.xAdvancedContent : this.linkedinAdvancedContent;
         const toggle = platform === 'x' ? this.xAdvancedToggle : this.linkedinAdvancedToggle;
-        
+
         const isExpanded = content.style.display !== 'none';
         content.style.display = isExpanded ? 'none' : 'block';
         toggle.setAttribute('aria-expanded', (!isExpanded).toString());
-        
+
         const icon = toggle.querySelector('.toggle-icon');
         if (icon) {
             icon.textContent = isExpanded ? '▶' : '▼';
@@ -384,7 +384,7 @@ class PopupManager {
     private updateRangeValue(platform: 'x' | 'linkedin', type: 'temperature' | 'presencePenalty' | 'frequencyPenalty' | 'typingSpeed') {
         const valueElement = document.getElementById(`${platform}${type.charAt(0).toUpperCase() + type.slice(1)}Value`);
         const inputElement = document.getElementById(`${platform}${type.charAt(0).toUpperCase() + type.slice(1)}`);
-        
+
         if (valueElement && inputElement) {
             valueElement.textContent = (inputElement as HTMLInputElement).value;
         }
@@ -448,21 +448,21 @@ class PopupManager {
     private updateModelDescription() {
         const selectedModelId = this.modelSelect.value;
         let description = '';
-        
+
         // Find model in OpenRouter models list
         const selectedModel = OPENROUTER_MODELS.find(m => m.id === selectedModelId);
-        
+
         if (selectedModel) {
             description = selectedModel.description || '';
         }
-        
+
         this.modelDescription.textContent = description;
     }
 
     private async loadTemplates() {
         try {
             const result = await chrome.storage.sync.get(['xSettings', 'linkedinSettings', 'linkedinTemplates']);
-            
+
             // Load X templates from xSettings
             this.xTemplates = result.xSettings?.templates || [...DEFAULT_X_TEMPLATES];
 

@@ -217,10 +217,10 @@ export const DEFAULT_X_TEMPLATES: ReplyTemplate[] = [
 
 // Default advanced settings
 export const DEFAULT_ADVANCED_SETTINGS: AdvancedSettings = {
-    temperature: 0.5,
+    temperature: 0.0,
     maxTokens: 50,
-    presencePenalty: 0.6,
-    frequencyPenalty: 0.3,
+    presencePenalty: 0.25,
+    frequencyPenalty: 0.25,
     typingSpeed: 5
 };
 
